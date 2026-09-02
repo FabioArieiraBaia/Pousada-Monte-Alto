@@ -2,6 +2,10 @@
     RewriteEngine On
     RewriteBase /Pousada%20Monte%20Alto/
 
+    # Dynamic XML Sitemap
+    RewriteRule ^sitemap\.xml$ backend/api/sitemap.php [L]
+    RewriteRule ^sitemap$ backend/api/sitemap.php [L]
+
     # 1. Direct API requests to backend/api/index.php
     RewriteRule ^api/(.*)$ backend/api/index.php [QSA,L]
     RewriteRule ^api$ backend/api/index.php [QSA,L]

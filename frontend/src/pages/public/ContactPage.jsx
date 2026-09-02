@@ -5,6 +5,7 @@ import {
   Send, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { InstagramIcon, FacebookIcon } from '../../components/SocialIcons';
+import SEOHead from '../../components/SEOHead';
 
 export default function ContactPage() {
   const { t } = useTranslation();
@@ -19,7 +20,11 @@ export default function ContactPage() {
   return (
     <div className="pt-28 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
       
-      {/* Header */}
+      <SEOHead
+        title="Fale Conosco e Reservas"
+        description="Entre em contato com a Pousada Monte Alto em Arraial do Cabo. Telefone, WhatsApp (21) 96949-3569, e-mail e atendimento para sua viagem perfeita."
+      />
+
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <span className="text-xs font-bold text-amber-600 uppercase tracking-widest block">
           Atendimento & Dúvidas
@@ -33,10 +38,7 @@ export default function ContactPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        
-        {/* Contact Info */}
         <div className="space-y-8">
-          
           <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-200/80 space-y-6">
             <h3 className="font-serif text-2xl font-bold text-stone-900">
               Canais Diretos de Contato
@@ -91,7 +93,6 @@ export default function ContactPage() {
               </div>
             </div>
 
-            {/* WhatsApp Direct CTA */}
             <div className="pt-2">
               <a
                 href="https://wa.me/5521969493569?text=Ol%C3%A1!%20Estou%20no%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida."
@@ -104,10 +105,8 @@ export default function ContactPage() {
               </a>
             </div>
           </div>
-
         </div>
 
-        {/* Contact Form */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-200/80 space-y-6">
           <h3 className="font-serif text-2xl font-bold text-stone-900">
             {t('contact.sendMessage')}
@@ -189,7 +188,6 @@ export default function ContactPage() {
             </form>
           )}
         </div>
-
       </div>
 
     </div>

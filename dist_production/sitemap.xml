@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <!-- Home Page -->
+  <url>
+    <loc>https://fabioarieira.com/montealto/</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://fabioarieira.com/montealto/" />
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://fabioarieira.com/montealto/?lng=en" />
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://fabioarieira.com/montealto/?lng=es" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://fabioarieira.com/montealto/" />
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&amp;fit=crop&amp;w=1200&amp;q=80</image:loc>
+      <image:title>Pousada Monte Alto Pé na Areia em Arraial do Cabo</image:title>
+    </image:image>
+  </url>
+
+  <!-- Accommodations Listing -->
+  <url>
+    <loc>https://fabioarieira.com/montealto/acomodacoes</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://fabioarieira.com/montealto/acomodacoes" />
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://fabioarieira.com/montealto/acomodacoes?lng=en" />
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://fabioarieira.com/montealto/acomodacoes?lng=es" />
+  </url>
+
+  <!-- Individual Rooms -->
+  <url>
+    <loc>https://fabioarieira.com/montealto/acomodacoes/suite-master-pe-na-areia</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&amp;fit=crop&amp;w=1200&amp;q=80</image:loc>
+      <image:title>Suíte Master Pé na Areia - Pousada Monte Alto</image:title>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://fabioarieira.com/montealto/acomodacoes/loft-massambaba-familia</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&amp;fit=crop&amp;w=1200&amp;q=80</image:loc>
+      <image:title>Loft Massambaba Família - Pousada Monte Alto</image:title>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://fabioarieira.com/montealto/acomodacoes/suite-jardim-tropical</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://fabioarieira.com/montealto/acomodacoes/suite-romantica-sunset</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- About & Location -->
+  <url>
+    <loc>https://fabioarieira.com/montealto/sobre-localizacao</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Blog Listing -->
+  <url>
+    <loc>https://fabioarieira.com/montealto/blog</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- Blog Posts -->
+  <url>
+    <loc>https://fabioarieira.com/montealto/blog/por-que-se-hospedar-em-monte-alto-arraial-do-cabo</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <url>
+    <loc>https://fabioarieira.com/montealto/blog/guia-completo-das-melhores-praias-de-arraial-do-cabo</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <!-- Contact -->
+  <url>
+    <loc>https://fabioarieira.com/montealto/contato</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+</urlset>

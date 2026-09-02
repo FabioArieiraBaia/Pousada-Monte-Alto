@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Clock, ArrowLeft, Video, Share2, Tag } from 'lucide-react';
 import YouTubeEmbed from '../../components/YouTubeEmbed';
+import SEOHead from '../../components/SEOHead';
 import { api } from '../../services/api';
 
 export default function BlogPostPage() {
@@ -42,11 +43,43 @@ export default function BlogPostPage() {
 
   const title = post[`title_${lang}`] || post.title_pt;
   const content = post[`content_${lang}`] || post.content_pt;
+  const excerpt = post[`excerpt_${lang}`] || post.excerpt_pt;
+
+  const blogSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": title,
+    "image": [post.featured_image || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"],
+    "datePublished": post.published_at,
+    "dateModified": post.published_at,
+    "author": {
+      "@type": "Organization",
+      "name": "Pousada Monte Alto",
+      "url": "https://fabioarieira.com/montealto"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Pousada Monte Alto",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80"
+      }
+    },
+    "description": excerpt
+  };
 
   return (
     <div className="pt-28 pb-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       
-      {/* Back to Blog */}
+      {/* Dynamic SEO Head with BlogPosting Schema */}
+      <SEOHead
+        title={title}
+        description={excerpt}
+        image={post.featured_image}
+        type="article"
+        schemaJson={blogSchema}
+      />
+
       <div>
         <Link
           to="/blog"
@@ -57,7 +90,6 @@ export default function BlogPostPage() {
         </Link>
       </div>
 
-      {/* Header */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 text-xs text-stone-500">
           <span className="flex items-center gap-1 font-medium">
@@ -76,31 +108,30 @@ export default function BlogPostPage() {
         </h1>
       </div>
 
-      {/* Featured Cover Image */}
       {post.featured_image && (
         <div className="h-72 sm:h-96 rounded-3xl overflow-hidden shadow-lg bg-stone-100">
           <img
             src={post.featured_image}
             alt={title}
             className="w-full h-full object-cover"
+            width="1200"
+            height="800"
+            decoding="async"
           />
         </div>
       )}
 
-      {/* YouTube Video Tour if attached */}
       {post.youtube_video_url && (
         <div className="space-y-3 pt-2">
           <YouTubeEmbed url={post.youtube_video_url} title={`Vídeo do Artigo: ${title}`} />
         </div>
       )}
 
-      {/* Article Rich Content */}
       <div
         className="prose prose-stone max-w-none text-stone-800 text-sm sm:text-base leading-relaxed space-y-4 pt-4"
         dangerouslySetInnerHTML={{ __html: content }}
       />
 
-      {/* Tags */}
       {post.tags && (
         <div className="pt-6 border-t border-stone-200 flex flex-wrap items-center gap-2">
           <Tag className="w-4 h-4 text-amber-600" />
@@ -115,7 +146,6 @@ export default function BlogPostPage() {
         </div>
       )}
 
-      {/* Bottom CTA to View Accommodations */}
       <div className="bg-sand-100/80 p-8 rounded-3xl border border-sand-200 text-center space-y-3">
         <h3 className="font-serif text-2xl font-bold text-stone-900">
           Gostou das dicas de Arraial do Cabo?

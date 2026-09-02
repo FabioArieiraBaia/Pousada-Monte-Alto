@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Clock, Video, ArrowRight, BookOpen, Tag } from 'lucide-react';
+import SEOHead from '../../components/SEOHead';
 import { api } from '../../services/api';
 
 export default function BlogPage() {
@@ -22,7 +23,11 @@ export default function BlogPage() {
   return (
     <div className="pt-28 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
       
-      {/* Header */}
+      <SEOHead
+        title="Dicas e Blog de Turismo em Arraial do Cabo"
+        description="Dicas de passeios, melhores praias, gastronomia e segredos de Monte Alto e Arraial do Cabo no blog da Pousada Monte Alto."
+      />
+
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <span className="text-xs font-bold text-amber-600 uppercase tracking-widest block">
           Dicas & Roteiros
@@ -35,7 +40,6 @@ export default function BlogPage() {
         </p>
       </div>
 
-      {/* Posts Grid */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3].map(n => (
@@ -59,6 +63,10 @@ export default function BlogPage() {
                       src={post.featured_image || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80'}
                       alt={title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                      width="800"
+                      height="500"
+                      decoding="async"
                     />
                     {post.youtube_video_url && (
                       <span className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md">

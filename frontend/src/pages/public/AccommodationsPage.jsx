@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Filter, PawPrint, BedDouble, SlidersHorizontal, Sparkles } from 'lucide-react';
 import RoomCard from '../../components/RoomCard';
 import BookingModal from '../../components/BookingModal';
+import SEOHead from '../../components/SEOHead';
 import { api } from '../../services/api';
 
 export default function AccommodationsPage() {
@@ -12,16 +13,14 @@ export default function AccommodationsPage() {
 
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [typeFilter, setTypeFilter] = useState('all'); // all, suite, loft
+  const [typeFilter, setTypeFilter] = useState('all');
   const [petFilter, setPetFilter] = useState(searchParams.get('pets') === 'true');
   const [selectedRoomForBooking, setSelectedRoomForBooking] = useState(null);
 
   useEffect(() => {
     setLoading(true);
     api.getAccommodations(true)
-      .then(res => {
-        setRooms(res.data || []);
-      })
+      .then(res => setRooms(res.data || []))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, []);
@@ -35,7 +34,11 @@ export default function AccommodationsPage() {
   return (
     <div className="pt-28 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
       
-      {/* Header */}
+      <SEOHead
+        title="Suítes e Lofts Pé na Areia"
+        description="Conheça nossas acomodações em Arraial do Cabo: Suítes com hidromassagem, vista para o mar e Lofts familiares com cozinha completa e pet friendly 🐾."
+      />
+
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <span className="text-xs font-bold text-amber-600 uppercase tracking-widest block">
           Hospedagem em Arraial do Cabo
@@ -48,10 +51,7 @@ export default function AccommodationsPage() {
         </p>
       </div>
 
-      {/* Filter Bar */}
       <div className="bg-white p-4 rounded-3xl shadow-sm border border-stone-200/80 flex flex-wrap items-center justify-between gap-4">
-        
-        {/* Type Buttons */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => setTypeFilter('all')}
@@ -85,7 +85,6 @@ export default function AccommodationsPage() {
           </button>
         </div>
 
-        {/* Pet Filter Toggle */}
         <label className="flex items-center gap-2 cursor-pointer bg-sand-50 px-3.5 py-2 rounded-2xl border border-sand-200 hover:border-amber-400 transition-colors">
           <input
             type="checkbox"
@@ -100,7 +99,6 @@ export default function AccommodationsPage() {
         </label>
       </div>
 
-      {/* Accommodations Grid */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3].map((n) => (
@@ -129,7 +127,6 @@ export default function AccommodationsPage() {
         </div>
       )}
 
-      {/* Booking Modal */}
       {selectedRoomForBooking && (
         <BookingModal
           room={selectedRoomForBooking}

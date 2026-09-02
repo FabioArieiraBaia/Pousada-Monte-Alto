@@ -9,6 +9,7 @@ import {
 import AvailabilitySearchBar from '../../components/AvailabilitySearchBar';
 import RoomCard from '../../components/RoomCard';
 import BookingModal from '../../components/BookingModal';
+import SEOHead from '../../components/SEOHead';
 import { api } from '../../services/api';
 
 export default function HomePage() {
@@ -20,12 +21,10 @@ export default function HomePage() {
   const [searchDates, setSearchDates] = useState({});
 
   useEffect(() => {
-    // Load accommodations
     api.getAccommodations(true)
       .then(res => setRooms(res.data || []))
       .catch(err => console.log('Using mock/fallback data for accommodations'));
 
-    // Load blog posts
     api.getBlogPosts(true)
       .then(res => setBlogPosts(res.data || []))
       .catch(err => console.log('Using mock/fallback data for blog'));
@@ -72,43 +71,45 @@ export default function HomePage() {
   return (
     <div className="space-y-24 pb-20">
       
+      {/* SEO Structured Head */}
+      <SEOHead
+        title="Pé na Areia em Arraial do Cabo - RJ"
+        description="Pousada Monte Alto em Arraial do Cabo. Suítes aconchegantes e Lofts familiares pé na areia, pet friendly 🐾, em frente à praia e a 3 min da Lagoa de Araruama."
+      />
+
       {/* 1. HERO SECTION */}
       <section className="relative min-h-[92vh] flex items-center justify-center bg-stone-950 text-white overflow-hidden pt-24 pb-16 px-4">
-        {/* Background Image with Parallax / Blur overlay */}
         <div className="absolute inset-0 z-0">
           <img
             src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2000&q=85"
             alt="Praia de Monte Alto Arraial do Cabo"
-            className="w-full h-full object-cover opacity-50 scale-105 animate-pulse-slow"
+            className="w-full h-full object-cover opacity-50 scale-105"
+            fetchPriority="high"
+            decoding="async"
+            width="2000"
+            height="1200"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-sand-50 via-stone-900/60 to-stone-950/80" />
         </div>
 
-        {/* Hero Content */}
         <div className="relative z-10 max-w-5xl mx-auto text-center space-y-6">
-          
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-400/40 text-amber-300 px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold backdrop-blur-md animate-fade-in">
+          <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-400/40 text-amber-300 px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold backdrop-blur-md">
             <Sparkles className="w-4 h-4 text-amber-400" />
             <span>{t('hero.badge')}</span>
           </div>
 
-          {/* Main Title */}
           <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white leading-tight">
             {t('hero.title')}
           </h1>
 
-          {/* Subtitle */}
           <p className="max-w-2xl mx-auto text-stone-200 text-sm sm:text-base md:text-lg leading-relaxed font-light">
             {t('hero.subtitle')}
           </p>
 
-          {/* Search Box Component */}
           <div className="pt-6">
             <AvailabilitySearchBar onSearch={handleSearch} />
           </div>
 
-          {/* Quick Highlights underneath */}
           <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs text-stone-300 font-medium">
             <span className="flex items-center gap-1.5">
               <Waves className="w-4 h-4 text-cyan-400" /> Pé na areia
@@ -123,7 +124,6 @@ export default function HomePage() {
               <ShieldCheck className="w-4 h-4 text-emerald-400" /> Reserva Direta Garantida
             </span>
           </div>
-
         </div>
       </section>
 
@@ -142,7 +142,6 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          
           <div className="bg-white p-6 rounded-3xl shadow-sm hover:shadow-md border border-stone-200/70 transition-all space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
               <Waves className="w-6 h-6" />
@@ -190,7 +189,6 @@ export default function HomePage() {
               {t('home.benefit4Desc')}
             </p>
           </div>
-
         </div>
       </section>
 
@@ -218,7 +216,6 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Accommodations Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {rooms.slice(0, 3).map((room) => (
             <RoomCard
@@ -255,6 +252,9 @@ export default function HomePage() {
                 alt={img.label}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 loading="lazy"
+                decoding="async"
+                width="800"
+                height="600"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                 <span className="text-white text-xs sm:text-sm font-semibold">{img.label}</span>
@@ -347,6 +347,10 @@ export default function HomePage() {
                     src={post.featured_image || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80'}
                     alt={post.title_pt}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    decoding="async"
+                    width="800"
+                    height="600"
                   />
                   {post.youtube_video_url && (
                     <span className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
@@ -377,7 +381,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* 7. BOTTOM CTA (WHATSAPP & DIRECT BOOKING) */}
+      {/* 7. BOTTOM CTA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950 text-white p-8 sm:p-14 shadow-2xl">
           <div className="relative z-10 max-w-2xl space-y-4">

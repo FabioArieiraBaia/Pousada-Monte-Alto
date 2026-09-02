@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import YouTubeEmbed from '../../components/YouTubeEmbed';
 import BookingModal from '../../components/BookingModal';
+import SEOHead from '../../components/SEOHead';
 import { api } from '../../services/api';
 
 export default function RoomDetailPage() {
@@ -20,7 +21,6 @@ export default function RoomDetailPage() {
   const [activePhoto, setActivePhoto] = useState(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
 
-  // Real-time reservation calculator on the page
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const checkoutDefault = new Date();
@@ -66,7 +66,6 @@ export default function RoomDetailPage() {
   const description = room[`description_${lang}`] || room.description_pt;
   const photos = room.photos || [];
 
-  // Calculate pricing
   let nights = 1;
   if (checkIn && checkOut) {
     const diff = (new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24);
@@ -79,16 +78,40 @@ export default function RoomDetailPage() {
   };
 
   const amenitiesList = Array.isArray(room.amenities) ? room.amenities : [];
-
-  // WhatsApp quick reservation link
   const pousadaWhatsApp = '5521969493569';
   const waMsg = `Olá! Gostaria de reservar a *${name}* de *${checkIn}* a *${checkOut}* (${nights} diárias) na Pousada Monte Alto.`;
   const directWhatsAppUrl = `https://wa.me/${pousadaWhatsApp}?text=${encodeURIComponent(waMsg)}`;
 
+  const roomSchema = {
+    "@context": "https://schema.org",
+    "@type": "HotelRoom",
+    "name": name,
+    "description": description,
+    "image": photos.map(p => p.photo_url),
+    "occupancy": {
+      "@type": "QuantitativeValue",
+      "maxValue": room.max_guests
+    },
+    "petsAllowed": room.accepts_pets == 1,
+    "offers": {
+      "@type": "Offer",
+      "price": room.base_price,
+      "priceCurrency": "BRL",
+      "availability": "https://schema.org/InStock"
+    }
+  };
+
   return (
     <div className="pt-28 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
       
-      {/* Back button */}
+      {/* Dynamic SEO Head with HotelRoom Schema */}
+      <SEOHead
+        title={name}
+        description={`${name} na Pousada Monte Alto em Arraial do Cabo. ${description?.substring(0, 150)}...`}
+        image={activePhoto || (photos[0]?.photo_url)}
+        schemaJson={roomSchema}
+      />
+
       <div>
         <Link
           to="/acomodacoes"
@@ -99,13 +122,9 @@ export default function RoomDetailPage() {
         </Link>
       </div>
 
-      {/* Main Grid: Gallery & Details on Left, Booking Box on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         
-        {/* Left Column (2 Cols) */}
         <div className="lg:col-span-2 space-y-10">
-          
-          {/* Header Info */}
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="bg-stone-900 text-white text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full">
@@ -134,17 +153,18 @@ export default function RoomDetailPage() {
             </h1>
           </div>
 
-          {/* Photo Gallery with Lightbox/Thumbnails */}
           <div className="space-y-4">
             <div className="h-80 sm:h-[450px] rounded-3xl overflow-hidden bg-stone-100 shadow-lg border border-stone-200">
               <img
                 src={activePhoto || (photos[0]?.photo_url)}
                 alt={name}
                 className="w-full h-full object-cover transition-all duration-500"
+                width="1200"
+                height="800"
+                decoding="async"
               />
             </div>
 
-            {/* Thumbnails */}
             {photos.length > 1 && (
               <div className="flex items-center gap-3 overflow-x-auto pb-2">
                 {photos.map((p, idx) => (
@@ -161,6 +181,9 @@ export default function RoomDetailPage() {
                       src={p.photo_url}
                       alt={`${name} thumbnail ${idx}`}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      width="100"
+                      height="100"
                     />
                   </button>
                 ))}
@@ -168,7 +191,6 @@ export default function RoomDetailPage() {
             )}
           </div>
 
-          {/* Description */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-200/80 space-y-4">
             <h3 className="font-serif text-xl font-bold text-stone-900">
               Sobre a Acomodação
@@ -178,7 +200,6 @@ export default function RoomDetailPage() {
             </p>
           </div>
 
-          {/* Amenities & Differences */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-200/80 space-y-6">
             <h3 className="font-serif text-xl font-bold text-stone-900">
               {t('room.amenities')}
@@ -197,7 +218,6 @@ export default function RoomDetailPage() {
             </div>
           </div>
 
-          {/* YouTube Video Tour if available */}
           {room.youtube_video_url && (
             <div className="space-y-4">
               <h3 className="font-serif text-xl font-bold text-stone-900 flex items-center gap-2">
@@ -208,7 +228,6 @@ export default function RoomDetailPage() {
             </div>
           )}
 
-          {/* Rules & Check-in info */}
           <div className="bg-sand-100/70 p-6 rounded-3xl border border-sand-200 space-y-3 text-xs text-stone-700">
             <h4 className="font-serif font-bold text-stone-900 text-sm">
               {t('room.policyTitle')}
@@ -220,14 +239,11 @@ export default function RoomDetailPage() {
               <li>Cancelamento gratuito até 7 dias antes do check-in.</li>
             </ul>
           </div>
-
         </div>
 
-        {/* Right Column: Sticky Booking Widget */}
         <div className="lg:col-span-1">
           <div className="sticky top-28 bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-stone-200/80 space-y-6">
             
-            {/* Price Header */}
             <div className="border-b border-stone-100 pb-4 flex items-baseline justify-between">
               <div>
                 <span className="text-[10px] text-stone-400 uppercase tracking-widest block font-bold">
@@ -240,7 +256,6 @@ export default function RoomDetailPage() {
               <span className="text-xs text-stone-500 font-medium">/ noite</span>
             </div>
 
-            {/* Real-time Dates Picker */}
             <div className="space-y-3">
               <label className="text-[11px] font-bold text-stone-600 uppercase block">
                 Selecione as Datas da sua Estadia
@@ -271,7 +286,6 @@ export default function RoomDetailPage() {
               </div>
             </div>
 
-            {/* Price Estimation breakdown */}
             <div className="bg-sand-50 p-4 rounded-2xl border border-sand-200 space-y-2 text-xs text-stone-700">
               <div className="flex justify-between">
                 <span>{formatCurrency(room.base_price)} x {nights} diárias:</span>
@@ -287,7 +301,6 @@ export default function RoomDetailPage() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="space-y-3">
               <button
                 onClick={() => setIsBookingOpen(true)}
@@ -320,7 +333,6 @@ export default function RoomDetailPage() {
 
       </div>
 
-      {/* Booking Modal */}
       {isBookingOpen && (
         <BookingModal
           room={room}

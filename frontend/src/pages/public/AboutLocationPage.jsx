@@ -5,6 +5,7 @@ import {
   Clock, ShieldCheck, Heart, Award, ArrowRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import SEOHead from '../../components/SEOHead';
 
 export default function AboutLocationPage() {
   const { t } = useTranslation();
@@ -57,7 +58,11 @@ export default function AboutLocationPage() {
   return (
     <div className="pt-28 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
       
-      {/* Header */}
+      <SEOHead
+        title="Quem Somos e Localização em Monte Alto"
+        description="Localização privilegiada na Restinga de Massambaba, Arraial do Cabo - RJ. Praia de Monte Alto pé na areia e a 3 min da Lagoa de Araruama."
+      />
+
       <div className="text-center space-y-3 max-w-3xl mx-auto">
         <span className="text-xs font-bold text-amber-600 uppercase tracking-widest block">
           História & Destino
@@ -70,7 +75,6 @@ export default function AboutLocationPage() {
         </p>
       </div>
 
-      {/* Story Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
         <div className="space-y-6">
           <div className="space-y-3">
@@ -106,6 +110,9 @@ export default function AboutLocationPage() {
             src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"
             alt="Pousada Monte Alto praia"
             className="w-full h-full object-cover"
+            width="1200"
+            height="800"
+            decoding="async"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-6">
             <span className="text-white text-sm font-semibold">Distrito de Monte Alto • Arraial do Cabo - RJ</span>
@@ -113,7 +120,6 @@ export default function AboutLocationPage() {
         </div>
       </div>
 
-      {/* Attractions / Beaches Guide */}
       <div className="space-y-8">
         <div className="text-center space-y-2">
           <span className="text-xs font-bold text-amber-600 uppercase tracking-widest block">
@@ -138,6 +144,10 @@ export default function AboutLocationPage() {
                   src={att.photo}
                   alt={att.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                  width="800"
+                  height="500"
+                  decoding="async"
                 />
                 <span className="absolute top-3 right-3 bg-stone-900/80 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
                   <Clock className="w-3 h-3 text-amber-400" />
@@ -163,7 +173,6 @@ export default function AboutLocationPage() {
         </div>
       </div>
 
-      {/* Google Maps Location Embed */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-200/80 space-y-4">
         <h3 className="font-serif text-2xl font-bold text-stone-900 flex items-center gap-2">
           <MapPin className="w-6 h-6 text-amber-600" />
