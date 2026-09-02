@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /montealto/
+
+    # 1. API Route: route /montealto/api/* to api/index.php
+    RewriteRule ^api/(.*)$ api/index.php [QSA,L]
+    RewriteRule ^api$ api/index.php [QSA,L]
+
+    # 2. Uploads folder
+    RewriteRule ^uploads/(.*)$ api/uploads/$1 [L]
+
+    # 3. Serve Frontend Static files if they exist
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 4. Fallback to Frontend React SPA
+    RewriteRule ^ index.html [L]
+</IfModule>

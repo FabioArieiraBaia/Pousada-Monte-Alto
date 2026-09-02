@@ -1,0 +1,20 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /Pousada%20Monte%20Alto/
+
+    # 1. Direct API requests to backend/api/index.php
+    RewriteRule ^api/(.*)$ backend/api/index.php [QSA,L]
+    RewriteRule ^api$ backend/api/index.php [QSA,L]
+
+    # 2. Uploads folder
+    RewriteRule ^uploads/(.*)$ backend/api/uploads/$1 [L]
+
+    # 3. Serve Frontend Dist static assets if they exist
+    RewriteCond %{DOCUMENT_ROOT}/Pousada\ Monte\ Alto/frontend/dist/$1 -f
+    RewriteRule ^(.*)$ frontend/dist/$1 [L]
+
+    # 4. Fallback to Frontend SPA index.html
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ frontend/dist/index.html [L]
+</IfModule>
