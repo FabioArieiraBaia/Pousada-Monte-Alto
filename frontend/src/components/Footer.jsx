@@ -5,6 +5,7 @@ import {
   Waves, MapPin, Phone, Mail, Heart, Shield, Clock, Award
 } from 'lucide-react';
 import { InstagramIcon, FacebookIcon } from './SocialIcons';
+import Logo from './Logo';
 
 export default function Footer() {
   const { t } = useTranslation();
@@ -16,20 +17,10 @@ export default function Footer() {
           
           {/* Column 1: Brand */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-500">
-                <Waves className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="font-serif text-xl font-bold text-white block">
-                  Pousada Monte Alto
-                </span>
-                <span className="text-[10px] tracking-widest uppercase text-amber-400 font-medium">
-                  Arraial do Cabo • RJ
-                </span>
-              </div>
-            </div>
-            <p className="text-stone-400 text-sm leading-relaxed">
+            <Link to="/" className="block">
+              <Logo variant="light" size="md" />
+            </Link>
+            <p className="text-stone-400 text-sm leading-relaxed pt-1">
               {t('footer.desc')}
             </p>
             <div className="flex items-center gap-3 pt-2">

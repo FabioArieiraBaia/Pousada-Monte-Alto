@@ -5,6 +5,7 @@ import {
   Menu, X, Globe, MessageCircle, Calendar, 
   MapPin, Phone, ShieldCheck, Sun, Waves, Sparkles
 } from 'lucide-react';
+import Logo from './Logo';
 
 export default function Navbar() {
   const { t, i18n } = useTranslation();
@@ -51,25 +52,14 @@ export default function Navbar() {
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
       scrolled 
-        ? 'bg-white/95 backdrop-blur-md shadow-md py-3 text-stone-800' 
-        : 'bg-gradient-to-b from-stone-900/70 via-stone-900/30 to-transparent py-5 text-white'
+        ? 'bg-white/95 backdrop-blur-md shadow-md py-2.5 text-stone-800' 
+        : 'bg-gradient-to-b from-stone-900/80 via-stone-900/40 to-transparent py-4 text-white'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-500 group-hover:scale-105 transition-transform">
-            <Waves className="w-5 h-5 text-amber-500" />
-          </div>
-          <div>
-            <span className="font-serif text-xl sm:text-2xl font-bold tracking-wide block leading-tight">
-              Pousada Monte Alto
-            </span>
-            <span className={`text-[10px] tracking-widest uppercase font-medium block ${
-              scrolled ? 'text-stone-500' : 'text-stone-300'
-            }`}>
-              Arraial do Cabo • RJ
-            </span>
-          </div>
+        
+        {/* Official Brand Logo */}
+        <Link to="/" className="flex items-center">
+          <Logo variant={scrolled ? 'dark' : 'light'} size="sm" />
         </Link>
 
         {/* Desktop Navigation */}
@@ -177,6 +167,10 @@ export default function Navbar() {
       {/* Mobile Drawer */}
       {isOpen && (
         <div className="md:hidden bg-stone-900/95 backdrop-blur-xl border-t border-white/10 text-white px-6 py-6 space-y-4 animate-fade-in shadow-2xl">
+          <div className="pb-3 border-b border-white/10">
+            <Logo variant="light" size="sm" />
+          </div>
+
           <nav className="flex flex-col space-y-3">
             {navLinks.map((link) => (
               <Link
@@ -225,7 +219,7 @@ export default function Navbar() {
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-center py-2.5 rounded-xl text-sm flex items-center justify-center gap-2"
             >
               <MessageCircle className="w-4 h-4" />
-              WhatsApp Direto: (21) 96949-3569
+              WhatsApp: (21) 96949-3569
             </a>
           </div>
         </div>

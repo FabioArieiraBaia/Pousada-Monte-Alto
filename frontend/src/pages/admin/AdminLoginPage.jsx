@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Waves, Lock, Mail, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Lock, Mail, AlertCircle, ArrowLeft } from 'lucide-react';
 import { api, setAuthToken, setAuthUser } from '../../services/api';
+import Logo from '../../components/Logo';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
@@ -49,28 +50,28 @@ export default function AdminLoginPage() {
       <div className="bg-stone-900 border border-stone-800 p-8 sm:p-10 rounded-3xl shadow-2xl max-w-md w-full relative z-10 space-y-6">
         
         {/* Header Logo */}
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-500 mx-auto">
-            <Waves className="w-6 h-6" />
+        <div className="text-center space-y-3 flex flex-col items-center">
+          <Logo variant="light" size="lg" showText={false} />
+          <div>
+            <h1 className="font-serif text-2xl font-bold text-white">
+              Painel Administrativo
+            </h1>
+            <p className="text-xs text-stone-400 mt-0.5">
+              Pousada Monte Alto • Arraial do Cabo
+            </p>
           </div>
-          <h1 className="font-serif text-2xl font-bold text-white">
-            Painel Administrativo
-          </h1>
-          <p className="text-xs text-stone-400">
-            Pousada Monte Alto • Arraial do Cabo
-          </p>
         </div>
 
         {error && (
-          <div className="bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs p-3 rounded-xl flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="bg-rose-950/50 border border-rose-800 text-rose-300 text-xs p-3.5 rounded-2xl flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-[11px] font-bold uppercase text-stone-400 mb-1">
+            <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5">
               E-mail de Acesso
             </label>
             <div className="relative">
@@ -81,13 +82,13 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@pousadamontealto.com.br"
-                className="w-full bg-stone-950 text-xs pl-10 pr-3.5 py-3 rounded-xl border border-stone-800 focus:border-amber-500 focus:outline-none text-white"
+                className="w-full bg-stone-950 text-white pl-10 pr-4 py-3 rounded-2xl border border-stone-700 focus:outline-none focus:border-amber-500 text-xs font-mono"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold uppercase text-stone-400 mb-1">
+            <label className="block text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5">
               Senha
             </label>
             <div className="relative">
@@ -98,28 +99,28 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-stone-950 text-xs pl-10 pr-3.5 py-3 rounded-xl border border-stone-800 focus:border-amber-500 focus:outline-none text-white"
+                className="w-full bg-stone-950 text-white pl-10 pr-4 py-3 rounded-2xl border border-stone-700 focus:outline-none focus:border-amber-500 text-xs"
               />
             </div>
-          </div>
-
-          {/* Preset hint */}
-          <div className="bg-stone-950/70 p-3 rounded-xl border border-stone-800/80 text-[11px] text-stone-400 space-y-1">
-            <span className="font-semibold text-amber-400 block">Credenciais Padrão:</span>
-            <span>E-mail: <code>admin@pousadamontealto.com.br</code></span><br />
-            <span>Senha: <code>admin123</code></span>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-lg transition-all"
+            className="w-full bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold py-3.5 rounded-2xl shadow-lg hover:shadow-xl transition-all uppercase tracking-wider text-xs flex items-center justify-center gap-2 mt-2"
           >
-            {loading ? 'Entrando...' : 'Acessar Painel'}
+            <span>{loading ? 'Entrando...' : 'Acessar Painel Admin'}</span>
           </button>
         </form>
 
+        <div className="text-center pt-2 border-t border-stone-800/80">
+          <span className="text-[11px] text-stone-500">
+            Acesso restrito à equipe da Pousada Monte Alto
+          </span>
+        </div>
+
       </div>
+
     </div>
   );
 }
