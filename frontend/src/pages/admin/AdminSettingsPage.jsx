@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Settings, Save, Phone, MessageCircle, Mail, 
-  MapPin, Clock, Wifi, CheckCircle2, AlertCircle, Share2
+  MapPin, Clock, Wifi, CheckCircle2, AlertCircle, Share2, Sparkles, Tag, Flame
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -19,7 +19,10 @@ export default function AdminSettingsPage() {
     instagram: 'https://instagram.com/pousadamontealtooficial',
     facebook: 'https://facebook.com/pousadamontealtooficial',
     pix_key: 'contato@pousadamontealto.com.br',
-    wifi_info: 'Pousada_MonteAlto_Guest / senha: bemvindoaomontealto'
+    wifi_info: 'Pousada_MonteAlto_Guest / senha: bemvindoaomontealto',
+    promo_mode: '1',
+    promo_badge: '🔥 Oferta Especial',
+    promo_text: 'Valores Promocionais Sob Consulta'
   });
 
   const [loading, setLoading] = useState(true);
@@ -67,7 +70,7 @@ export default function AdminSettingsPage() {
           Configurações Gerais da Pousada
         </h1>
         <p className="text-stone-500 text-xs sm:text-sm mt-0.5">
-          Atualize telefones, chaves PIX, endereço, dados de contato e redes sociais.
+          Atualize tarifas promocionais, telefones, endereço, WhatsApp e redes sociais.
         </p>
       </div>
 
@@ -78,8 +81,74 @@ export default function AdminSettingsPage() {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-200/80 space-y-6">
+      <form onSubmit={handleSave} className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-200/80 space-y-8">
         
+        {/* 🌟 PROMO MODE & SOB CONSULTA BANNER 🌟 */}
+        <div className="bg-gradient-to-br from-amber-500/10 via-amber-50 to-orange-500/10 p-6 rounded-3xl border border-amber-300/80 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center font-bold shadow-sm">
+                <Flame className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-serif text-lg font-bold text-stone-900 flex items-center gap-2">
+                  <span>Modo Promocional & Valores Sob Consulta</span>
+                  <span className="text-[10px] bg-amber-500 text-stone-950 px-2 py-0.5 rounded-full font-extrabold uppercase">
+                    Destaque
+                  </span>
+                </h3>
+                <p className="text-stone-600 text-xs mt-0.5">
+                  Exibe os preços riscados e o valor como <strong>"Sob Consulta"</strong>, incentivando o visitante a entrar em contato via WhatsApp ou Formulário.
+                </p>
+              </div>
+            </div>
+
+            {/* Toggle Switch */}
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={settings.promo_mode === '1'}
+                onChange={(e) => setSettings({ ...settings, promo_mode: e.target.checked ? '1' : '0' })}
+                className="sr-only peer"
+              />
+              <div className="w-14 h-8 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-600"></div>
+              <span className="ml-3 text-xs font-bold text-stone-800">
+                {settings.promo_mode === '1' ? 'ATIVADO' : 'DESATIVADO'}
+              </span>
+            </label>
+          </div>
+
+          {settings.promo_mode === '1' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-amber-200">
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1">
+                  Selo / Badge de Destaque
+                </label>
+                <input
+                  type="text"
+                  value={settings.promo_badge || '🔥 Oferta Especial'}
+                  onChange={(e) => setSettings({ ...settings, promo_badge: e.target.value })}
+                  placeholder="Ex: 🔥 Oferta Especial"
+                  className="w-full text-xs p-2.5 rounded-xl border border-amber-300 bg-white focus:outline-none font-bold text-stone-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1">
+                  Texto Exibido Sob Consulta
+                </label>
+                <input
+                  type="text"
+                  value={settings.promo_text || 'Valores Promocionais Sob Consulta'}
+                  onChange={(e) => setSettings({ ...settings, promo_text: e.target.value })}
+                  placeholder="Ex: Valores Promocionais Sob Consulta"
+                  className="w-full text-xs p-2.5 rounded-xl border border-amber-300 bg-white focus:outline-none font-bold text-stone-900"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Basic Brand */}
         <div className="space-y-4">
           <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2">
@@ -113,16 +182,17 @@ export default function AdminSettingsPage() {
           </div>
         </div>
 
-        {/* Contacts & WhatsApp */}
+        {/* Contact & WhatsApp */}
         <div className="space-y-4">
-          <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2">
-            Canais de Atendimento & Reservas
+          <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2 flex items-center gap-2">
+            <Phone className="w-4 h-4 text-amber-600" />
+            Contatos & Atendimento
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center gap-1">
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" /> WhatsApp Principal
+              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
+                WhatsApp Principal (somente números)
               </label>
               <input
                 type="text"
@@ -134,8 +204,8 @@ export default function AdminSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center gap-1">
-                <Phone className="w-3.5 h-3.5 text-amber-600" /> WhatsApp Secundário / Fábio
+              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
+                WhatsApp Secundário
               </label>
               <input
                 type="text"
@@ -147,8 +217,8 @@ export default function AdminSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center gap-1">
-                <Mail className="w-3.5 h-3.5 text-cyan-600" /> E-mail Oficial
+              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
+                E-mail de Contato
               </label>
               <input
                 type="email"
@@ -158,17 +228,10 @@ export default function AdminSettingsPage() {
               />
             </div>
           </div>
-        </div>
-
-        {/* Address & Hours */}
-        <div className="space-y-4">
-          <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2">
-            Localização & Horários de Funcionamento
-          </h3>
 
           <div>
-            <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-rose-600" /> Endereço Completo em Monte Alto
+            <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
+              Endereço Completo
             </label>
             <input
               type="text"
@@ -177,98 +240,60 @@ export default function AdminSettingsPage() {
               className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none"
             />
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4">
+        {/* Check-in, Check-out, PIX & Wi-Fi */}
+        <div className="space-y-4">
+          <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-600" />
+            Horários & Dados da Estadia
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-amber-600" /> Horário de Check-in
+              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
+                Horário Check-in
               </label>
               <input
                 type="text"
                 value={settings.checkin_time}
                 onChange={(e) => setSettings({ ...settings, checkin_time: e.target.value })}
-                placeholder="14:00"
-                className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none font-mono"
+                className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none font-bold"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-amber-600" /> Horário de Check-out
+              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
+                Horário Check-out
               </label>
               <input
                 type="text"
                 value={settings.checkout_time}
                 onChange={(e) => setSettings({ ...settings, checkout_time: e.target.value })}
-                placeholder="12:00"
-                className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none font-mono"
+                className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none font-bold"
               />
             </div>
-          </div>
-        </div>
 
-        {/* PIX & Wi-Fi */}
-        <div className="space-y-4">
-          <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2">
-            Pagamentos PIX & Wi-Fi para Hóspedes
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
-                Chave PIX da Pousada
+                Chave PIX
               </label>
               <input
                 type="text"
                 value={settings.pix_key}
                 onChange={(e) => setSettings({ ...settings, pix_key: e.target.value })}
-                placeholder="contato@pousadamontealto.com.br"
                 className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center gap-1">
-                <Wifi className="w-3.5 h-3.5 text-cyan-600" /> Dados do Wi-Fi dos Hóspedes
+              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
+                Rede Wi-Fi & Senha
               </label>
               <input
                 type="text"
                 value={settings.wifi_info}
                 onChange={(e) => setSettings({ ...settings, wifi_info: e.target.value })}
-                placeholder="Rede / Senha"
-                className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Social Media */}
-        <div className="space-y-4">
-          <h3 className="font-serif text-lg font-bold text-stone-900 border-b border-stone-100 pb-2">
-            Redes Sociais
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
-                Instagram (@pousadamontealtooficial)
-              </label>
-              <input
-                type="url"
-                value={settings.instagram}
-                onChange={(e) => setSettings({ ...settings, instagram: e.target.value })}
-                className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
-                Facebook
-              </label>
-              <input
-                type="url"
-                value={settings.facebook}
-                onChange={(e) => setSettings({ ...settings, facebook: e.target.value })}
                 className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none"
               />
             </div>
@@ -276,19 +301,18 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Submit */}
-        <div className="pt-4 border-t border-stone-100 flex justify-end">
+        <div className="pt-4 border-t border-stone-100 flex items-center justify-end">
           <button
             type="submit"
             disabled={saving}
-            className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold px-8 py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg flex items-center gap-2 transition-all"
+            className="bg-stone-900 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-wider px-8 py-3.5 rounded-2xl shadow-md transition-all flex items-center gap-2"
           >
             <Save className="w-4 h-4" />
-            <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
+            <span>{saving ? 'Salvando Configurações...' : 'Salvar Todas as Configurações'}</span>
           </button>
         </div>
 
       </form>
-
     </div>
   );
 }

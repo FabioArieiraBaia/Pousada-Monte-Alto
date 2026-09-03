@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   Menu, X, Globe, MessageCircle, Calendar, 
-  MapPin, Phone, ShieldCheck, Sun, Waves, Sparkles
+  MapPin, Phone, ChevronDown, Sparkles 
 } from 'lucide-react';
 import Logo from './Logo';
 
@@ -16,20 +16,32 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+      if (window.scrollY > 20) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on route change
+  // Close mobile drawer on route change
   useEffect(() => {
     setIsOpen(false);
     setLangMenuOpen(false);
   }, [location.pathname]);
 
-  const changeLanguage = (lng) => {
-    i18n.changeLanguage(lng);
+  const languages = [
+    { code: 'pt', label: 'Português', flag: '🇧🇷' },
+    { code: 'en', label: 'English', flag: '🇺🇸' },
+    { code: 'es', label: 'Español', flag: '🇪🇸' }
+  ];
+
+  const currentLang = languages.find(l => i18n.language.startsWith(l.code)) || languages[0];
+
+  const changeLanguage = (code) => {
+    i18n.changeLanguage(code);
     setLangMenuOpen(false);
   };
 
@@ -41,20 +53,14 @@ export default function Navbar() {
     { to: '/contato', label: t('nav.contact') },
   ];
 
-  const languages = [
-    { code: 'pt', label: 'Português', flag: '🇧🇷' },
-    { code: 'en', label: 'English', flag: '🇺🇸' },
-    { code: 'es', label: 'Español', flag: '🇪🇸' },
-  ];
-
-  const currentLang = languages.find(l => l.code === (i18n.language || 'pt').substring(0, 2)) || languages[0];
-
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled 
-        ? 'bg-white/95 backdrop-blur-md shadow-md py-2.5 text-stone-800' 
-        : 'bg-gradient-to-b from-stone-900/80 via-stone-900/40 to-transparent py-4 text-white'
-    }`}>
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? 'bg-white/95 backdrop-blur-md shadow-md py-3 border-b border-stone-200/50'
+          : 'bg-gradient-to-b from-stone-950/80 to-transparent py-4 text-white'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         
         {/* Official Brand Logo */}
@@ -149,7 +155,9 @@ export default function Navbar() {
           {/* Quick Lang toggle on mobile */}
           <button
             onClick={() => setLangMenuOpen(!langMenuOpen)}
-            className="text-xs px-2 py-1 rounded-md border border-white/30 flex items-center gap-1"
+            className={`text-xs px-2 py-1 rounded-md border flex items-center gap-1 ${
+              scrolled ? 'border-stone-300 text-stone-700' : 'border-white/30 text-white'
+            }`}
           >
             <span>{currentLang.flag}</span>
           </button>
@@ -164,19 +172,15 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer (Clean, No Duplicate Logo) */}
       {isOpen && (
         <div className="md:hidden bg-stone-900/95 backdrop-blur-xl border-t border-white/10 text-white px-6 py-6 space-y-4 animate-fade-in shadow-2xl">
-          <div className="pb-3 border-b border-white/10">
-            <Logo variant="light" size="sm" />
-          </div>
-
-          <nav className="flex flex-col space-y-3">
+          <nav className="flex flex-col space-y-2">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className="text-base font-medium text-stone-200 hover:text-amber-400 py-1.5 border-b border-white/5"
+                className="text-base font-medium text-stone-200 hover:text-amber-400 py-2 border-b border-white/5"
               >
                 {link.label}
               </Link>

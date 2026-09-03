@@ -14,6 +14,7 @@ require_once __DIR__ . '/controllers/ReservationsController.php';
 require_once __DIR__ . '/controllers/FinanceController.php';
 require_once __DIR__ . '/controllers/BlogController.php';
 require_once __DIR__ . '/controllers/SettingsController.php';
+require_once __DIR__ . '/controllers/GalleryController.php';
 require_once __DIR__ . '/controllers/UploadController.php';
 
 $pdo = getDatabaseConnection();
@@ -100,6 +101,25 @@ try {
         exit();
     }
 
+    // --- GALLERY ROUTES ---
+    if ($path === '/gallery' && $method === 'GET') {
+        GalleryController::getAll($pdo);
+        exit();
+    }
+    if ($path === '/gallery' && $method === 'POST') {
+        GalleryController::create($pdo);
+        exit();
+    }
+    if (preg_match('#^/gallery/(\d+)$#', $path, $m)) {
+        if ($method === 'PUT') {
+            GalleryController::update($pdo, $m[1]);
+            exit();
+        } elseif ($method === 'DELETE') {
+            GalleryController::delete($pdo, $m[1]);
+            exit();
+        }
+    }
+
     // --- RESERVATIONS ROUTES ---
     if ($path === '/reservations' && $method === 'GET') {
         ReservationsController::getAll($pdo);
@@ -121,30 +141,26 @@ try {
         ReservationsController::updateStatus($pdo, $m[1]);
         exit();
     }
-    if (preg_match('#^/reservations/(\d+)/whatsapp$#', $path, $m) && $method === 'GET') {
-        ReservationsController::getWhatsAppLink($pdo, $m[1]);
-        exit();
-    }
     if (preg_match('#^/reservations/(\d+)$#', $path, $m) && $method === 'DELETE') {
         ReservationsController::delete($pdo, $m[1]);
         exit();
     }
 
     // --- FINANCE ROUTES ---
+    if ($path === '/finance/transactions' && $method === 'GET') {
+        FinanceController::getTransactions($pdo);
+        exit();
+    }
     if ($path === '/finance/summary' && $method === 'GET') {
         FinanceController::getSummary($pdo);
         exit();
     }
-    if ($path === '/finance' && $method === 'GET') {
-        FinanceController::getAll($pdo);
+    if ($path === '/finance/transactions' && $method === 'POST') {
+        FinanceController::createTransaction($pdo);
         exit();
     }
-    if ($path === '/finance' && $method === 'POST') {
-        FinanceController::create($pdo);
-        exit();
-    }
-    if (preg_match('#^/finance/(\d+)$#', $path, $m) && $method === 'DELETE') {
-        FinanceController::delete($pdo, $m[1]);
+    if (preg_match('#^/finance/transactions/(\d+)$#', $path, $m) && $method === 'DELETE') {
+        FinanceController::deleteTransaction($pdo, $m[1]);
         exit();
     }
 

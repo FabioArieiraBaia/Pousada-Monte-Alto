@@ -76,6 +76,20 @@ export const api = {
     method: 'PUT'
   }),
 
+  // Gallery
+  getGallery: () => request('/gallery'),
+  createGalleryItem: (data) => request('/gallery', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateGalleryItem: (id, data) => request(`/gallery/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  deleteGalleryItem: (id) => request(`/gallery/${id}`, {
+    method: 'DELETE'
+  }),
+
   // Reservations
   getReservations: () => request('/reservations'),
   getReservationsCalendar: (month) => request(`/reservations/calendar?month=${month || ''}`),

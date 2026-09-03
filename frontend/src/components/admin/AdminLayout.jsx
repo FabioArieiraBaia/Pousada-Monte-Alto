@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { 
   LayoutDashboard, BedDouble, Calendar, DollarSign, 
   BookOpen, Settings, LogOut, ExternalLink, Menu, X, 
-  ShieldCheck, User
+  ShieldCheck, User, Image as ImageIcon
 } from 'lucide-react';
 import { getAuthToken, getAuthUser, removeAuthToken, removeAuthUser } from '../../services/api';
 import Logo from '../Logo';
@@ -30,6 +30,7 @@ export default function AdminLayout() {
   const navItems = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/admin/acomodacoes', label: 'Suítes & Lofts', icon: BedDouble },
+    { to: '/admin/galeria', label: 'Galeria de Fotos', icon: ImageIcon },
     { to: '/admin/reservas', label: 'Reservas & Calendário', icon: Calendar },
     { to: '/admin/financeiro', label: 'Módulo Financeiro', icon: DollarSign },
     { to: '/admin/blog', label: 'Gerenciar Blog', icon: BookOpen },
@@ -69,19 +70,19 @@ export default function AdminLayout() {
           <nav className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.to;
+              const isActive = location.pathname.startsWith(item.to);
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                    isActive
-                      ? 'bg-amber-500 text-stone-950 shadow-md font-bold'
-                      : 'text-stone-400 hover:text-white hover:bg-stone-800/60'
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                    isActive 
+                      ? 'bg-amber-500 text-stone-950 shadow-md font-bold' 
+                      : 'hover:bg-stone-800 hover:text-white text-stone-400'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-stone-950' : 'text-stone-400'}`} />
+                  <Icon className="w-4 h-4 shrink-0" />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -89,46 +90,47 @@ export default function AdminLayout() {
           </nav>
         </div>
 
-        {/* User Profile & Actions */}
-        <div className="p-6 border-t border-stone-800/80 space-y-4">
+        {/* User Footer & Logout */}
+        <div className="p-6 border-t border-stone-800 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-stone-800 text-amber-400 flex items-center justify-center font-bold text-xs border border-stone-700">
-              {user?.name ? user.name.charAt(0) : 'A'}
+            <div className="w-9 h-9 rounded-full bg-stone-800 flex items-center justify-center text-amber-400 font-bold text-xs border border-stone-700">
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
             </div>
-            <div className="overflow-hidden">
-              <span className="font-semibold text-xs text-white block truncate">
+            <div className="flex-1 min-w-0">
+              <span className="block text-xs font-bold text-white truncate">
                 {user?.name || 'Administrador'}
               </span>
-              <span className="text-[10px] text-stone-500 block truncate">
+              <span className="block text-[10px] text-stone-400 truncate">
                 {user?.email || 'admin@pousadamontealto.com.br'}
               </span>
             </div>
           </div>
 
-          <div className="pt-2 flex flex-col gap-2">
-            <Link
-              to="/"
+          <div className="flex items-center gap-2 pt-2 border-t border-stone-800/80">
+            <a
+              href="/montealto/"
               target="_blank"
-              className="w-full bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors font-medium"
+              rel="noopener noreferrer"
+              className="flex-1 text-center bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white py-2 px-3 rounded-xl text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span>Ver Site Público</span>
-            </Link>
+              <span>Ver Site</span>
+            </a>
 
             <button
               onClick={handleLogout}
-              className="w-full bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors font-medium border border-rose-900/50"
+              className="p-2 bg-stone-800 hover:bg-red-950/40 text-stone-400 hover:text-red-400 rounded-xl transition-colors"
+              title="Sair do Painel"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Sair do Painel</span>
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen">
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           <Outlet />
         </main>
       </div>

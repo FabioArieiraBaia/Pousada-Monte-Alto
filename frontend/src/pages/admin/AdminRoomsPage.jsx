@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  BedDouble, Plus, Edit2, Trash2, PawPrint, 
-  Video, DollarSign, Sparkles, X, Check, Upload, Image as ImageIcon
+  Plus, Edit, Trash2, PawPrint, Eye, 
+  Image as ImageIcon, Check, X, Video, Sparkles, DollarSign, Users, AlertCircle, Flame, Tag 
 } from 'lucide-react';
 import YouTubeEmbed from '../../components/YouTubeEmbed';
 import { api } from '../../services/api';
@@ -10,10 +10,10 @@ export default function AdminRoomsPage() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
 
   const initialFormState = {
-    id: null,
     name_pt: '',
     name_en: '',
     name_es: '',
@@ -21,37 +21,31 @@ export default function AdminRoomsPage() {
     base_price: 350,
     max_guests: 2,
     accepts_pets: 0,
+    is_promo: 1,
     youtube_video_url: '',
     description_pt: '',
     description_en: '',
     description_es: '',
-    amenities: ['wifi', 'ar_condicionado', 'frigobar', 'smart_tv'],
+    amenities: [],
     photos: []
   };
 
   const [form, setForm] = useState(initialFormState);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
-  const [saving, setSaving] = useState(false);
 
   const availableAmenities = [
-    { key: 'wifi', label: 'Wi-Fi Fibra' },
+    { key: 'wifi', label: 'Wi-Fi Fibra Óptica' },
     { key: 'ar_condicionado', label: 'Ar Condicionado Split' },
-    { key: 'hidromassagem', label: 'Hidromassagem' },
-    { key: 'cama_king', label: 'Cama King Size' },
-    { key: 'cama_queen', label: 'Cama Queen Size' },
-    { key: 'sofa_cama', label: 'Sofá-Cama' },
     { key: 'frigobar', label: 'Frigobar' },
     { key: 'smart_tv', label: 'Smart TV' },
-    { key: 'vista_mar', label: 'Vista Mar' },
-    { key: 'vista_lagoa', label: 'Vista Lagoa' },
-    { key: 'cafe_da_manha', label: 'Café da Manhã' },
-    { key: 'estacionamento', label: 'Estacionamento' },
-    { key: 'pet_friendly', label: 'Pet Friendly' },
-    { key: 'varanda_com_rede', label: 'Varanda com Rede' },
-    { key: 'cozinha_completa', label: 'Cozinha Completa' },
-    { key: 'churrasqueira', label: 'Churrasqueira' },
-    { key: 'jardim_privativo', label: 'Jardim Privativo' },
-    { key: 'banheira', label: 'Banheira de Imersão' }
+    { key: 'vista_mar', label: 'Vista para o Mar' },
+    { key: 'hidromassagem', label: 'Hidromassagem / Banheira' },
+    { key: 'cama_king', label: 'Cama King Size' },
+    { key: 'varanda_rede', label: 'Varanda com Rede' },
+    { key: 'cozinha_completa', label: 'Cozinha Americana Completa' },
+    { key: 'estacionamento', label: 'Estacionamento Incluso' },
+    { key: 'pet_friendly', label: 'Aceita Pets 🐾' },
+    { key: 'cafe_manha', label: 'Café da Manhã Opcional' }
   ];
 
   useEffect(() => {
@@ -77,7 +71,8 @@ export default function AdminRoomsPage() {
         type: room.type || 'suite',
         base_price: room.base_price || 350,
         max_guests: room.max_guests || 2,
-        accepts_pets: room.accepts_pets ? 1 : 0,
+        accepts_pets: Number(room.accepts_pets) === 1 ? 1 : 0,
+        is_promo: room.is_promo !== undefined ? (Number(room.is_promo) === 1 ? 1 : 0) : 1,
         youtube_video_url: room.youtube_video_url || '',
         description_pt: room.description_pt || '',
         description_en: room.description_en || '',
@@ -95,11 +90,19 @@ export default function AdminRoomsPage() {
   const handleToggleAmenity = (key) => {
     setForm(prev => {
       const exists = prev.amenities.includes(key);
+      const newAmenities = exists 
+        ? prev.amenities.filter(a => a !== key)
+        : [...prev.amenities, key];
+      
+      let newAcceptsPets = prev.accepts_pets;
+      if (key === 'pet_friendly') {
+        newAcceptsPets = !exists ? 1 : 0;
+      }
+
       return {
         ...prev,
-        amenities: exists 
-          ? prev.amenities.filter(a => a !== key)
-          : [...prev.amenities, key]
+        accepts_pets: newAcceptsPets,
+        amenities: newAmenities
       };
     });
   };
@@ -125,10 +128,15 @@ export default function AdminRoomsPage() {
     setSaving(true);
 
     try {
+      const payload = {
+        ...form,
+        accepts_pets: Number(form.accepts_pets) === 1 ? 1 : 0,
+        is_promo: Number(form.is_promo) === 1 ? 1 : 0
+      };
       if (form.id) {
-        await api.updateAccommodation(form.id, form);
+        await api.updateAccommodation(form.id, payload);
       } else {
-        await api.createAccommodation(form);
+        await api.createAccommodation(payload);
       }
       setModalOpen(false);
       loadRooms();
@@ -139,13 +147,14 @@ export default function AdminRoomsPage() {
     }
   };
 
-  const handleDeleteRoom = async (id) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta acomodação?')) return;
-    try {
-      await api.deleteAccommodation(id);
-      loadRooms();
-    } catch (err) {
-      alert(err.message || 'Erro ao excluir acomodação');
+  const handleDeleteRoom = async (id, name) => {
+    if (window.confirm(`Tem certeza que deseja excluir "${name}"?`)) {
+      try {
+        await api.deleteAccommodation(id);
+        loadRooms();
+      } catch (err) {
+        alert(err.message || 'Erro ao excluir acomodação');
+      }
     }
   };
 
@@ -154,99 +163,141 @@ export default function AdminRoomsPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-6">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-stone-200/80 shadow-sm">
         <div>
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
-            Gerenciamento de Suítes & Lofts
-          </h1>
-          <p className="text-stone-500 text-xs sm:text-sm mt-0.5">
-            Cadastre, edite fotos, vídeos do YouTube, comodidades e preços das diárias.
+          <h2 className="font-serif text-2xl font-bold text-stone-900">
+            Gerenciador de Acomodações
+          </h2>
+          <p className="text-stone-500 text-xs mt-1">
+            Cadastre suítes, lofts, defina tarifas promocionais (Sob Consulta), fotos e comodidades
           </p>
         </div>
 
         <button
           onClick={() => handleOpenModal()}
-          className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold px-4 py-2.5 rounded-2xl text-xs flex items-center gap-1.5 shadow-sm transition-all self-start sm:self-auto"
+          className="inline-flex items-center gap-2 bg-stone-900 hover:bg-amber-600 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-sm transition-colors"
         >
           <Plus className="w-4 h-4" />
-          <span>Adicionar Nova Acomodação</span>
+          <span>Cadastrar Nova Acomodação</span>
         </button>
       </div>
 
-      {/* Rooms Table / Cards */}
+      {/* Grid of Rooms */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {rooms.map((room) => {
           const cover = room.cover_photo || (room.photos && room.photos[0]?.photo_url) || 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80';
-          
+          const isPet = Number(room.accepts_pets) === 1;
+          const isPromo = Number(room.is_promo) === 1;
+
           return (
             <div
               key={room.id}
-              className="bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-200/80 flex flex-col justify-between"
+              className="bg-white rounded-3xl border border-stone-200/80 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
             >
               <div>
-                <div className="h-48 relative overflow-hidden bg-stone-100">
+                {/* Photo Header */}
+                <div className="relative h-48 bg-stone-100 overflow-hidden">
                   <img
                     src={cover}
                     alt={room.name_pt}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                  <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
                     <span className="bg-stone-900/80 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">
                       {room.type === 'loft' ? 'Loft' : 'Suíte'}
                     </span>
-                    {room.accepts_pets == 1 && (
+                    {isPet ? (
                       <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <PawPrint className="w-3 h-3" /> Pet Friendly
+                        <PawPrint className="w-3 h-3" />
+                        Pet Friendly
                       </span>
+                    ) : (
+                      <span className="bg-stone-700/80 text-stone-300 text-[10px] px-2 py-0.5 rounded-full">
+                        Sem Pets
+                      </span>
+                    )}
+                    {isPromo && (
+                      <span className="bg-amber-500 text-stone-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                        <Flame className="w-3 h-3" />
+                        Sob Consulta
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-md text-stone-900 text-xs font-bold px-2.5 py-1.5 rounded-xl shadow-sm text-right">
+                    {isPromo ? (
+                      <div>
+                        <span className="line-through text-stone-400 text-[10px] block leading-none font-normal">
+                          {formatCurrency(room.base_price)}
+                        </span>
+                        <span className="text-amber-600 font-extrabold text-xs block">
+                          Sob Consulta
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        {formatCurrency(room.base_price)} <span className="text-[10px] font-normal text-stone-600">/noite</span>
+                      </div>
                     )}
                   </div>
                 </div>
 
+                {/* Content */}
                 <div className="p-5 space-y-3">
-                  <div className="flex items-baseline justify-between">
-                    <h3 className="font-serif text-lg font-bold text-stone-900">
+                  <div>
+                    <h3 className="font-serif font-bold text-base text-stone-900">
                       {room.name_pt}
                     </h3>
-                    <span className="text-amber-600 font-bold text-sm font-serif">
-                      {formatCurrency(room.base_price)}
-                    </span>
+                    <div className="flex items-center gap-3 text-xs text-stone-500 mt-1">
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5 text-stone-400" />
+                        Até {room.max_guests} pessoas
+                      </span>
+                      {room.youtube_video_url && (
+                        <span className="flex items-center gap-1 text-red-600 font-semibold">
+                          <Video className="w-3.5 h-3.5" />
+                          Vídeo Tour
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <p className="text-stone-600 text-xs line-clamp-2">
-                    {room.description_pt}
+                    {room.description_pt || 'Sem descrição cadastrada.'}
                   </p>
 
-                  <div className="flex items-center gap-3 text-[11px] text-stone-500 pt-1">
-                    <span>👥 Max: {room.max_guests} pessoas</span>
-                    <span>•</span>
-                    <span>📸 {(room.photos || []).length} fotos</span>
-                    {room.youtube_video_url && (
-                      <>
-                        <span>•</span>
-                        <span className="text-red-600 font-bold flex items-center gap-0.5">
-                          <Video className="w-3 h-3" /> Vídeo
-                        </span>
-                      </>
+                  {/* Amenities Badges Preview */}
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {(room.amenities || []).slice(0, 4).map((am, idx) => (
+                      <span key={idx} className="bg-stone-100 text-stone-600 text-[10px] px-2 py-0.5 rounded-md">
+                        {am.replace('_', ' ')}
+                      </span>
+                    ))}
+                    {(room.amenities || []).length > 4 && (
+                      <span className="text-stone-400 text-[10px] self-center">
+                        +{room.amenities.length - 4} mais
+                      </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="p-5 pt-0 border-t border-stone-100 flex items-center justify-end gap-2">
+              {/* Actions Footer */}
+              <div className="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-2">
                 <button
                   onClick={() => handleOpenModal(room)}
-                  className="bg-stone-100 hover:bg-stone-200 text-stone-800 p-2 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors"
-                  title="Editar Acomodação"
+                  className="flex-1 bg-white hover:bg-stone-100 text-stone-800 text-xs font-bold py-2 px-3 rounded-xl border border-stone-200 flex items-center justify-center gap-1.5 transition-colors"
                 >
-                  <Edit2 className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Editar</span>
+                  <Edit className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Editar Quarto</span>
                 </button>
+
                 <button
-                  onClick={() => handleDeleteRoom(room.id)}
-                  className="bg-rose-50 hover:bg-rose-100 text-rose-700 p-2 rounded-xl text-xs font-semibold transition-colors"
+                  onClick={() => handleDeleteRoom(room.id, room.name_pt)}
+                  className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                   title="Excluir Acomodação"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -301,7 +352,7 @@ export default function AdminRoomsPage() {
 
                 <div>
                   <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
-                    Diária Base (R$) *
+                    Diária Base de Referência (R$) *
                   </label>
                   <input
                     type="number"
@@ -329,6 +380,54 @@ export default function AdminRoomsPage() {
                 </div>
               </div>
 
+              {/* Promo Mode & Pet Friendly Switches */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-amber-50/70 p-4 rounded-2xl border border-amber-200">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(Number(form.is_promo) === 1)}
+                    onChange={(e) => setForm({ ...form, is_promo: e.target.checked ? 1 : 0 })}
+                    className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500 border-amber-300 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-stone-900 flex items-center gap-1">
+                      <Flame className="w-3.5 h-3.5 text-amber-600" />
+                      Modo Promocional (Sob Consulta)
+                    </span>
+                    <span className="text-[10px] text-stone-600 block">
+                      Risca o preço e exibe "Sob Consulta"
+                    </span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(Number(form.accepts_pets) === 1)}
+                    onChange={(e) => {
+                      const isChecked = e.target.checked;
+                      setForm(prev => ({
+                        ...prev,
+                        accepts_pets: isChecked ? 1 : 0,
+                        amenities: isChecked 
+                          ? (prev.amenities.includes('pet_friendly') ? prev.amenities : [...prev.amenities, 'pet_friendly'])
+                          : prev.amenities.filter(a => a !== 'pet_friendly')
+                      }));
+                    }}
+                    className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500 border-stone-300 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-emerald-950 flex items-center gap-1">
+                      <PawPrint className="w-3.5 h-3.5 text-emerald-600" />
+                      Aceita Pets (Pet Friendly)
+                    </span>
+                    <span className="text-[10px] text-emerald-700 block">
+                      Habilita o selo e filtro pet friendly
+                    </span>
+                  </div>
+                </label>
+              </div>
+
               {/* Multilanguage Titles */}
               <div className="space-y-3 bg-sand-50 p-4 rounded-2xl border border-sand-200">
                 <span className="text-[11px] font-bold text-stone-700 uppercase block">
@@ -349,62 +448,42 @@ export default function AdminRoomsPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] text-stone-500 font-bold mb-0.5">🇺🇸 Inglês</label>
+                    <label className="block text-[10px] text-stone-500 font-bold mb-0.5">🇺🇸 Inglês (Opcional)</label>
                     <input
                       type="text"
                       value={form.name_en}
                       onChange={(e) => setForm({ ...form, name_en: e.target.value })}
-                      placeholder="Ex: Master Beachfront Suite"
+                      placeholder="Ex: Beachfront Master Suite"
                       className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-[10px] text-stone-500 font-bold mb-0.5">🇪🇸 Espanhol</label>
+                    <label className="block text-[10px] text-stone-500 font-bold mb-0.5">🇪🇸 Espanhol (Opcional)</label>
                     <input
                       type="text"
                       value={form.name_es}
                       onChange={(e) => setForm({ ...form, name_es: e.target.value })}
-                      placeholder="Ex: Suite Master Frente al Mar"
+                      placeholder="Ex: Suite Master Frente a la Playa"
                       className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Pet Friendly Toggle & YouTube Video URL */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                
-                <label className="flex items-center gap-3 p-3 bg-emerald-50 rounded-2xl border border-emerald-200 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.accepts_pets == 1}
-                    onChange={(e) => setForm({ ...form, accepts_pets: e.target.checked ? 1 : 0 })}
-                    className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500 border-stone-300"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-emerald-950 flex items-center gap-1">
-                      <PawPrint className="w-3.5 h-3.5 text-emerald-600" />
-                      Aceita Pets (Pet Friendly)
-                    </span>
-                    <span className="text-[10px] text-emerald-700 block">
-                      Habilita o selo e filtro pet friendly no site
-                    </span>
-                  </div>
+              {/* YouTube Link */}
+              <div>
+                <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center gap-1">
+                  <Video className="w-3.5 h-3.5 text-red-600" />
+                  Link do Vídeo no YouTube
                 </label>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center gap-1">
-                    <Video className="w-3.5 h-3.5 text-red-600" />
-                    Link do Vídeo no YouTube
-                  </label>
-                  <input
-                    type="url"
-                    value={form.youtube_video_url}
-                    onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })}
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                </div>
+                <input
+                  type="url"
+                  value={form.youtube_video_url}
+                  onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                />
               </div>
 
               {/* YouTube Preview if provided */}
@@ -448,7 +527,7 @@ export default function AdminRoomsPage() {
                         type="checkbox"
                         checked={form.amenities.includes(am.key)}
                         onChange={() => handleToggleAmenity(am.key)}
-                        className="w-3.5 h-3.5 text-amber-600 rounded"
+                        className="w-3.5 h-3.5 text-amber-600 rounded cursor-pointer"
                       />
                       <span>{am.label}</span>
                     </label>
@@ -458,66 +537,73 @@ export default function AdminRoomsPage() {
 
               {/* Photos Gallery Management */}
               <div className="space-y-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
-                <label className="block text-[11px] font-bold text-stone-700 uppercase">
-                  Galeria de Fotos da Acomodação
-                </label>
-
-                {/* Add Photo Input */}
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={newPhotoUrl}
-                    onChange={(e) => setNewPhotoUrl(e.target.value)}
-                    placeholder="Cole a URL da imagem (Ex: https://...)"
-                    className="flex-1 text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddPhoto}
-                    className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-bold shrink-0"
-                  >
-                    Adicionar Foto
-                  </button>
-                </div>
-
-                {/* Photo Previews */}
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 pt-2">
-                  {form.photos.map((url, idx) => (
-                    <div key={idx} className="relative h-20 rounded-xl overflow-hidden group border border-stone-300">
-                      <img src={url} alt="" className="w-full h-full object-cover" />
+                <span className="text-[11px] font-bold text-stone-700 uppercase block">
+                  Galeria de Fotos
+                </span>
+                
+                {/* Photo URLs List */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {form.photos.map((photo, idx) => (
+                    <div key={idx} className="relative group h-24 rounded-xl overflow-hidden border border-stone-300 bg-black">
+                      <img src={photo} alt="" className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => handleRemovePhoto(idx)}
-                        className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Remover foto"
+                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remover Foto"
                       >
                         <X className="w-3 h-3" />
                       </button>
                       {idx === 0 && (
-                        <span className="absolute bottom-1 left-1 bg-amber-500 text-stone-950 font-bold text-[9px] px-1.5 py-0.5 rounded">
+                        <span className="absolute bottom-1 left-1 bg-amber-500 text-stone-950 text-[9px] font-bold px-1.5 py-0.5 rounded">
                           Capa
                         </span>
                       )}
                     </div>
                   ))}
                 </div>
+
+                {/* Add Photo Input */}
+                <div className="flex gap-2 pt-2">
+                  <input
+                    type="url"
+                    value={newPhotoUrl}
+                    onChange={(e) => setNewPhotoUrl(e.target.value)}
+                    placeholder="Cole a URL da foto (https://...)"
+                    className="flex-1 text-xs p-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddPhoto}
+                    className="bg-stone-900 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-stone-800 transition-colors"
+                  >
+                    Adicionar Foto
+                  </button>
+                </div>
               </div>
 
-              {/* Submit */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-100">
+              {/* Submit Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-200">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-5 py-2.5 rounded-xl text-xs font-semibold"
+                  className="px-4 py-2.5 text-xs font-bold text-stone-600 hover:text-stone-900 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-md"
+                  className="bg-stone-900 hover:bg-amber-600 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
                 >
-                  {saving ? 'Salvando...' : 'Salvar Acomodação'}
+                  {saving ? (
+                    <span>Salvando...</span>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Salvar Acomodação</span>
+                    </>
+                  )}
                 </button>
               </div>
 

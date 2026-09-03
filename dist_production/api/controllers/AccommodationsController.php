@@ -15,6 +15,8 @@ class AccommodationsController {
         
         foreach ($accommodations as &$acc) {
             $acc['amenities'] = json_decode($acc['amenities_json'] ?? '[]', true) ?: [];
+            $acc['accepts_pets'] = intval($acc['accepts_pets'] ?? 0);
+            $acc['is_promo'] = intval($acc['is_promo'] ?? 0);
             
             // Fetch photos
             $stmtPhotos = $pdo->prepare("SELECT id, photo_url, is_cover, order_index FROM accommodation_photos WHERE accommodation_id = ? ORDER BY is_cover DESC, order_index ASC");
@@ -43,6 +45,8 @@ class AccommodationsController {
         }
         
         $acc['amenities'] = json_decode($acc['amenities_json'] ?? '[]', true) ?: [];
+        $acc['accepts_pets'] = intval($acc['accepts_pets'] ?? 0);
+        $acc['is_promo'] = intval($acc['is_promo'] ?? 0);
         
         // Fetch photos
         $stmtPhotos = $pdo->prepare("SELECT id, photo_url, is_cover, order_index FROM accommodation_photos WHERE accommodation_id = ? ORDER BY is_cover DESC, order_index ASC");
@@ -67,9 +71,12 @@ class AccommodationsController {
             $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $data['name_pt'] ?? 'quarto-' . time())));
         }
         
+        $acceptsPets = (!empty($data['accepts_pets']) && $data['accepts_pets'] !== 'false' && $data['accepts_pets'] !== false && $data['accepts_pets'] !== 0 && $data['accepts_pets'] !== '0') ? 1 : 0;
+        $isPromo = (!empty($data['is_promo']) && $data['is_promo'] !== 'false' && $data['is_promo'] !== false && $data['is_promo'] !== 0 && $data['is_promo'] !== '0') ? 1 : 0;
+        
         $stmt = $pdo->prepare("INSERT INTO accommodations 
-            (slug, type, name_pt, name_en, name_es, description_pt, description_en, description_es, base_price, max_guests, accepts_pets, youtube_video_url, amenities_json, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            (slug, type, name_pt, name_en, name_es, description_pt, description_en, description_es, base_price, max_guests, accepts_pets, is_promo, youtube_video_url, amenities_json, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
         $stmt->execute([
             $slug,
@@ -82,7 +89,8 @@ class AccommodationsController {
             $data['description_es'] ?? '',
             floatval($data['base_price'] ?? 350.00),
             intval($data['max_guests'] ?? 2),
-            !empty($data['accepts_pets']) ? 1 : 0,
+            $acceptsPets,
+            $isPromo,
             $data['youtube_video_url'] ?? '',
             json_encode($data['amenities'] ?? []),
             isset($data['is_active']) ? intval($data['is_active']) : 1
@@ -110,11 +118,14 @@ class AccommodationsController {
         requireAuth($pdo);
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         
+        $acceptsPets = (!empty($data['accepts_pets']) && $data['accepts_pets'] !== 'false' && $data['accepts_pets'] !== false && $data['accepts_pets'] !== 0 && $data['accepts_pets'] !== '0') ? 1 : 0;
+        $isPromo = (!empty($data['is_promo']) && $data['is_promo'] !== 'false' && $data['is_promo'] !== false && $data['is_promo'] !== 0 && $data['is_promo'] !== '0') ? 1 : 0;
+        
         $stmt = $pdo->prepare("UPDATE accommodations SET 
             type = ?,
             name_pt = ?, name_en = ?, name_es = ?,
             description_pt = ?, description_en = ?, description_es = ?,
-            base_price = ?, max_guests = ?, accepts_pets = ?,
+            base_price = ?, max_guests = ?, accepts_pets = ?, is_promo = ?,
             youtube_video_url = ?, amenities_json = ?, is_active = ?
             WHERE id = ?");
             
@@ -128,7 +139,8 @@ class AccommodationsController {
             $data['description_es'] ?? '',
             floatval($data['base_price']),
             intval($data['max_guests'] ?? 2),
-            !empty($data['accepts_pets']) ? 1 : 0,
+            $acceptsPets,
+            $isPromo,
             $data['youtube_video_url'] ?? '',
             json_encode($data['amenities'] ?? []),
             isset($data['is_active']) ? intval($data['is_active']) : 1,
@@ -209,7 +221,7 @@ class AccommodationsController {
         $checkIn = $input['check_in'] ?? null;
         $checkOut = $input['check_out'] ?? null;
         $guests = intval($input['guests'] ?? 1);
-        $pets = !empty($input['pets']) ? 1 : 0;
+        $pets = (!empty($input['pets']) && $input['pets'] !== 'false' && $input['pets'] !== false && $input['pets'] !== 0 && $input['pets'] !== '0') ? 1 : 0;
         
         if (!$checkIn || !$checkOut) {
             http_response_code(400);
@@ -223,7 +235,7 @@ class AccommodationsController {
                 
         $params = [$guests];
         
-        if ($pets) {
+        if ($pets === 1) {
             $sql .= " AND a.accepts_pets = 1";
         }
         
@@ -246,6 +258,8 @@ class AccommodationsController {
         // Enrich photos
         foreach ($availableRooms as &$acc) {
             $acc['amenities'] = json_decode($acc['amenities_json'] ?? '[]', true) ?: [];
+            $acc['accepts_pets'] = intval($acc['accepts_pets'] ?? 0);
+            $acc['is_promo'] = intval($acc['is_promo'] ?? 0);
             $stmtPhotos = $pdo->prepare("SELECT photo_url FROM accommodation_photos WHERE accommodation_id = ? ORDER BY is_cover DESC, order_index ASC");
             $stmtPhotos->execute([$acc['id']]);
             $acc['photos'] = $stmtPhotos->fetchAll(PDO::FETCH_COLUMN);

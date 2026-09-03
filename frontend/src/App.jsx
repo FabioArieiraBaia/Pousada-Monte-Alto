@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet, useLocation, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import WhatsAppFloating from './components/WhatsAppFloating';
+import InteractiveVideoBackground from './components/InteractiveVideoBackground';
 
 // Public Pages
 import HomePage from './pages/public/HomePage';
@@ -18,10 +19,19 @@ import AdminLayout from './components/admin/AdminLayout';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminRoomsPage from './pages/admin/AdminRoomsPage';
+import AdminGalleryPage from './pages/admin/AdminGalleryPage';
 import AdminReservationsPage from './pages/admin/AdminReservationsPage';
 import AdminFinancePage from './pages/admin/AdminFinancePage';
 import AdminBlogPage from './pages/admin/AdminBlogPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+
+// Background Video Mode Context
+export const VideoBackgroundContext = createContext({
+  heroMode: 'sea',
+  setHeroMode: () => {}
+});
+
+export const useVideoBackground = () => useContext(VideoBackgroundContext);
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -32,10 +42,15 @@ function ScrollToTop() {
 }
 
 function PublicLayout() {
+  const { heroMode } = useVideoBackground();
+
   return (
-    <div className="min-h-screen flex flex-col bg-sand-50">
+    <div className="relative min-h-screen flex flex-col bg-stone-950 text-stone-100">
+      {/* 🎬 Global Seamless 60FPS Video Background for ALL Public Pages */}
+      <InteractiveVideoBackground mode={heroMode} />
+
       <Navbar />
-      <main className="flex-1">
+      <main className="relative z-10 flex-1">
         <Outlet />
       </main>
       <Footer />
@@ -50,38 +65,43 @@ const getBasename = () => {
 };
 
 export default function App() {
+  const [heroMode, setHeroMode] = useState('sea');
+
   return (
-    <Router basename={getBasename()}>
-      <ScrollToTop />
-      <Routes>
-        {/* Public Routes */}
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/acomodacoes" element={<AccommodationsPage />} />
-          <Route path="/acomodacoes/:slug" element={<RoomDetailPage />} />
-          <Route path="/sobre-localizacao" element={<AboutLocationPage />} />
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/blog/:slug" element={<BlogPostPage />} />
-          <Route path="/contato" element={<ContactPage />} />
-        </Route>
+    <VideoBackgroundContext.Provider value={{ heroMode, setHeroMode }}>
+      <Router basename={getBasename()}>
+        <ScrollToTop />
+        <Routes>
+          {/* Public Routes with Global Video Background */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/acomodacoes" element={<AccommodationsPage />} />
+            <Route path="/acomodacoes/:slug" element={<RoomDetailPage />} />
+            <Route path="/sobre-localizacao" element={<AboutLocationPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
+            <Route path="/contato" element={<ContactPage />} />
+          </Route>
 
-        {/* Admin Login */}
-        <Route path="/admin/login" element={<AdminLoginPage />} />
+          {/* Admin Login */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
 
-        {/* Admin Protected CMS */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="dashboard" element={<AdminDashboardPage />} />
-          <Route path="acomodacoes" element={<AdminRoomsPage />} />
-          <Route path="reservas" element={<AdminReservationsPage />} />
-          <Route path="financeiro" element={<AdminFinancePage />} />
-          <Route path="blog" element={<AdminBlogPage />} />
-          <Route path="configuracoes" element={<AdminSettingsPage />} />
-        </Route>
+          {/* Admin Protected CMS */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="acomodacoes" element={<AdminRoomsPage />} />
+            <Route path="galeria" element={<AdminGalleryPage />} />
+            <Route path="reservas" element={<AdminReservationsPage />} />
+            <Route path="financeiro" element={<AdminFinancePage />} />
+            <Route path="blog" element={<AdminBlogPage />} />
+            <Route path="configuracoes" element={<AdminSettingsPage />} />
+          </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </VideoBackgroundContext.Provider>
   );
 }
