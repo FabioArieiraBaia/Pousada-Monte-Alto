@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Edit, Trash2, PawPrint, Eye, 
-  Image as ImageIcon, Check, X, Video, Sparkles, DollarSign, Users, AlertCircle, Flame, Tag 
+  Image as ImageIcon, Check, X, Video, Sparkles, DollarSign, Users, AlertCircle, Flame, Tag,
+  Upload, Star, Loader2
 } from 'lucide-react';
 import YouTubeEmbed from '../../components/YouTubeEmbed';
 import { api } from '../../services/api';
@@ -12,6 +13,9 @@ export default function AdminRoomsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
+
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
 
   const initialFormState = {
     name_pt: '',
@@ -84,6 +88,9 @@ export default function AdminRoomsPage() {
       setEditingRoom(null);
       setForm(initialFormState);
     }
+    setNewPhotoUrl('');
+    setUploadingPhotos(false);
+    setUploadProgress('');
     setModalOpen(true);
   };
 
@@ -107,7 +114,51 @@ export default function AdminRoomsPage() {
     });
   };
 
-  const handleAddPhoto = () => {
+  // Upload one or multiple files directly from computer/phone
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    setUploadingPhotos(true);
+    try {
+      const newUrls = [];
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress(`Enviando foto ${i + 1} de ${files.length}...`);
+        const res = await api.uploadImage(files[i]);
+        const url = res.url || res.file_url;
+        if (url) {
+          newUrls.push(url);
+        }
+      }
+      if (newUrls.length > 0) {
+        setForm(prev => ({
+          ...prev,
+          photos: [...prev.photos, ...newUrls]
+        }));
+      }
+    } catch (err) {
+      alert('Erro ao fazer upload da imagem: ' + (err.message || 'Falha no envio'));
+    } finally {
+      setUploadingPhotos(false);
+      setUploadProgress('');
+      e.target.value = '';
+    }
+  };
+
+  // Set a specific photo as cover (position 0)
+  const handleSetCoverPhoto = (index) => {
+    if (index === 0) return;
+    setForm(prev => {
+      const selected = prev.photos[index];
+      const remaining = prev.photos.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        photos: [selected, ...remaining]
+      };
+    });
+  };
+
+  const handleAddPhotoUrl = () => {
     if (!newPhotoUrl.trim()) return;
     setForm(prev => ({
       ...prev,
@@ -131,7 +182,8 @@ export default function AdminRoomsPage() {
       const payload = {
         ...form,
         accepts_pets: Number(form.accepts_pets) === 1 ? 1 : 0,
-        is_promo: Number(form.is_promo) === 1 ? 1 : 0
+        is_promo: Number(form.is_promo) === 1 ? 1 : 0,
+        photos: form.photos
       };
       if (form.id) {
         await api.updateAccommodation(form.id, payload);
@@ -172,7 +224,7 @@ export default function AdminRoomsPage() {
             Gerenciador de Acomodações
           </h2>
           <p className="text-stone-500 text-xs mt-1">
-            Cadastre suítes, lofts, defina tarifas promocionais (Sob Consulta), fotos e comodidades
+            Cadastre suítes, lofts, faça upload de fotos, defina tarifas promocionais e comodidades
           </p>
         </div>
 
@@ -535,50 +587,126 @@ export default function AdminRoomsPage() {
                 </div>
               </div>
 
-              {/* Photos Gallery Management */}
-              <div className="space-y-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
-                <span className="text-[11px] font-bold text-stone-700 uppercase block">
-                  Galeria de Fotos
-                </span>
-                
-                {/* Photo URLs List */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {form.photos.map((photo, idx) => (
-                    <div key={idx} className="relative group h-24 rounded-xl overflow-hidden border border-stone-300 bg-black">
-                      <img src={photo} alt="" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePhoto(idx)}
-                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Remover Foto"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                      {idx === 0 && (
-                        <span className="absolute bottom-1 left-1 bg-amber-500 text-stone-950 text-[9px] font-bold px-1.5 py-0.5 rounded">
-                          Capa
-                        </span>
-                      )}
-                    </div>
-                  ))}
+              {/* 📸 PHOTOS GALLERY MANAGEMENT WITH DIRECT FILE UPLOAD 📸 */}
+              <div className="space-y-4 bg-stone-50 p-5 rounded-2xl border border-stone-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-amber-600" />
+                    <span className="text-xs font-bold text-stone-800 uppercase">
+                      Galeria de Fotos da Acomodação
+                    </span>
+                  </div>
+                  <span className="text-[11px] bg-stone-200/80 text-stone-700 font-bold px-2.5 py-0.5 rounded-full">
+                    {form.photos.length} {form.photos.length === 1 ? 'foto' : 'fotos'}
+                  </span>
                 </div>
 
-                {/* Add Photo Input */}
-                <div className="flex gap-2 pt-2">
+                {/* Direct File Upload Drag & Drop Box */}
+                <label className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed transition-all cursor-pointer ${
+                  uploadingPhotos
+                    ? 'bg-amber-50/60 border-amber-400 cursor-not-allowed'
+                    : 'bg-white hover:bg-amber-50/50 border-amber-300/80 hover:border-amber-500 shadow-sm'
+                }`}>
                   <input
-                    type="url"
-                    value={newPhotoUrl}
-                    onChange={(e) => setNewPhotoUrl(e.target.value)}
-                    placeholder="Cole a URL da foto (https://...)"
-                    className="flex-1 text-xs p-2 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    disabled={uploadingPhotos}
+                    onChange={handleFileUpload}
+                    className="hidden"
                   />
-                  <button
-                    type="button"
-                    onClick={handleAddPhoto}
-                    className="bg-stone-900 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-stone-800 transition-colors"
-                  >
-                    Adicionar Foto
-                  </button>
+                  {uploadingPhotos ? (
+                    <div className="flex flex-col items-center gap-2 py-1 text-amber-700">
+                      <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
+                      <span className="text-xs font-bold">{uploadProgress || 'Enviando imagens...'}</span>
+                      <span className="text-[10px] text-stone-500">Gravando na pasta de uploads e preparando para o banco</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1.5 py-1 text-center">
+                      <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-inner">
+                        <Upload className="w-5 h-5" />
+                      </div>
+                      <span className="text-xs font-bold text-stone-900 mt-1">
+                        Clique aqui para Subir Fotos do seu Computador ou Celular
+                      </span>
+                      <span className="text-[10px] text-stone-500">
+                        Suporta JPG, PNG, WEBP, GIF. Você pode selecionar várias fotos de uma vez.
+                      </span>
+                    </div>
+                  )}
+                </label>
+
+                {/* Photos Grid with Cover Selection & Delete */}
+                {form.photos.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <span className="text-[10px] font-bold text-stone-500 uppercase block">
+                      Fotos Cadastradas (A primeira é a Capa Principal):
+                    </span>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {form.photos.map((photo, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`relative group h-28 rounded-2xl overflow-hidden border-2 transition-all bg-black shadow-sm ${
+                            idx === 0 ? 'border-amber-500 ring-2 ring-amber-400/40' : 'border-stone-200 hover:border-stone-400'
+                          }`}
+                        >
+                          <img src={photo} alt="" className="w-full h-full object-cover" />
+
+                          {/* Delete Photo Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePhoto(idx)}
+                            className="absolute top-1.5 right-1.5 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl opacity-90 group-hover:opacity-100 transition-opacity shadow-md"
+                            title="Remover Foto"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Cover Badge or Set as Cover Button */}
+                          {idx === 0 ? (
+                            <span className="absolute bottom-1.5 left-1.5 bg-amber-500 text-stone-950 text-[9px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-md">
+                              <Star className="w-2.5 h-2.5 fill-stone-950" />
+                              Capa
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSetCoverPhoto(idx)}
+                              className="absolute bottom-1.5 left-1.5 bg-black/75 hover:bg-amber-500 hover:text-stone-950 text-white text-[9px] font-bold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1 shadow-md"
+                              title="Definir esta foto como capa"
+                            >
+                              <Star className="w-2.5 h-2.5" />
+                              Definir Capa
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add Photo via URL as alternative */}
+                <div className="pt-2 border-t border-stone-200">
+                  <span className="text-[10px] font-bold text-stone-500 uppercase block mb-1.5">
+                    Ou cole o link de uma foto na web:
+                  </span>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={newPhotoUrl}
+                      onChange={(e) => setNewPhotoUrl(e.target.value)}
+                      placeholder="https://exemplo.com/foto.jpg"
+                      className="flex-1 text-xs p-2.5 rounded-xl border border-stone-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddPhotoUrl}
+                      className="bg-stone-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-amber-600 transition-colors shrink-0"
+                    >
+                      Adicionar URL
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -593,11 +721,14 @@ export default function AdminRoomsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || uploadingPhotos}
                   className="bg-stone-900 hover:bg-amber-600 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
                 >
                   {saving ? (
-                    <span>Salvando...</span>
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Salvando no Banco...</span>
+                    </>
                   ) : (
                     <>
                       <Check className="w-4 h-4" />

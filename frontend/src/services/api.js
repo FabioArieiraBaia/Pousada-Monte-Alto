@@ -156,6 +156,10 @@ export const api = {
       },
       body: formData
     });
-    return await res.json();
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Erro ao enviar imagem');
+    }
+    return data;
   }
 };

@@ -15,10 +15,10 @@ class UploadController {
         $file = $_FILES['file'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         
-        $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
         if (!in_array($ext, $allowed)) {
             http_response_code(400);
-            echo json_encode(['error' => 'Formato de imagem inválido. Formatos permitidos: JPG, PNG, WEBP, GIF']);
+            echo json_encode(['error' => 'Formato de imagem inválido. Formatos permitidos: JPG, PNG, WEBP, GIF, AVIF']);
             return;
         }
         
@@ -31,13 +31,18 @@ class UploadController {
         $targetPath = $uploadDir . $fileName;
         
         if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-            $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . ($_SERVER['HTTP_HOST'] ?? 'localhost:8000');
-            $url = $baseUrl . '/api/uploads/' . $fileName;
+            $referer = $_SERVER['HTTP_REFERER'] ?? '';
+            $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+            $isMonteAlto = (strpos($referer, '/montealto') !== false || strpos($requestUri, '/montealto') !== false);
+            
+            // Relative URL that works seamlessly across dev proxy and Apache production
+            $url = ($isMonteAlto ? '/montealto' : '') . '/api/uploads/' . $fileName;
             
             echo json_encode([
                 'success' => true,
                 'file_name' => $fileName,
                 'url' => $url,
+                'file_url' => $url,
                 'message' => 'Imagem enviada com sucesso'
             ]);
         } else {
