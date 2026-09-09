@@ -58,7 +58,7 @@ export default function AdminBlogPage() {
       .finally(() => setLoading(false));
   };
 
-  const handleOpenModal = (post = null) => {
+  const handleOpenModal = async (post = null) => {
     if (post) {
       setEditingPost(post);
       let gal = [];
@@ -67,6 +67,8 @@ export default function AdminBlogPage() {
       } else if (typeof post.gallery_photos === 'string' && post.gallery_photos.trim()) {
         try { gal = JSON.parse(post.gallery_photos); } catch (e) { gal = []; }
       }
+
+      // Initial populate
       setForm({
         id: post.id,
         title_pt: post.title_pt || '',
@@ -84,6 +86,26 @@ export default function AdminBlogPage() {
         tags: post.tags || '',
         is_published: post.is_published !== undefined ? post.is_published : 1
       });
+
+      // If content was not loaded in list (cached or older API response), fetch full article by slug
+      if (!post.content_pt && post.slug) {
+        try {
+          const res = await api.getBlogPostBySlug(post.slug);
+          if (res.data) {
+            setForm(prev => ({
+              ...prev,
+              content_pt: res.data.content_pt || prev.content_pt,
+              content_en: res.data.content_en || prev.content_en,
+              content_es: res.data.content_es || prev.content_es,
+              gallery_photos: Array.isArray(res.data.gallery_photos) && res.data.gallery_photos.length > 0 
+                ? res.data.gallery_photos 
+                : prev.gallery_photos
+            }));
+          }
+        } catch (err) {
+          console.error('Erro ao carregar detalhes completos do artigo:', err);
+        }
+      }
     } else {
       setEditingPost(null);
       setForm(initialForm);

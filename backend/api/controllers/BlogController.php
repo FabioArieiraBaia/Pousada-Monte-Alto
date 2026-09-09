@@ -4,7 +4,11 @@
 class BlogController {
 
     public static function getAll($pdo, $publicOnly = true) {
-        $sql = "SELECT id, slug, title_pt, title_en, title_es, excerpt_pt, excerpt_en, excerpt_es, featured_image, gallery_photos, youtube_video_url, tags, is_published, published_at FROM blog_posts";
+        $fields = $publicOnly 
+            ? "id, slug, title_pt, title_en, title_es, excerpt_pt, excerpt_en, excerpt_es, featured_image, gallery_photos, youtube_video_url, tags, is_published, published_at"
+            : "id, slug, title_pt, title_en, title_es, excerpt_pt, excerpt_en, excerpt_es, content_pt, content_en, content_es, featured_image, gallery_photos, youtube_video_url, tags, is_published, published_at";
+        
+        $sql = "SELECT {$fields} FROM blog_posts";
         if ($publicOnly) {
             // 1 = Publicado no feed do blog. 0 = Rascunho (apenas admin). 2 = Não listado (acessível via link direto, mas oculto da listagem pública).
             $sql .= " WHERE is_published = 1";
