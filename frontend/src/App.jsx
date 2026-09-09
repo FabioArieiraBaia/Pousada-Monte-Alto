@@ -13,6 +13,8 @@ import AboutLocationPage from './pages/public/AboutLocationPage';
 import BlogPage from './pages/public/BlogPage';
 import BlogPostPage from './pages/public/BlogPostPage';
 import ContactPage from './pages/public/ContactPage';
+import GalleryPage from './pages/public/GalleryPage';
+import BeachDetailPage from './pages/public/BeachDetailPage';
 
 // Admin Pages
 import AdminLayout from './components/admin/AdminLayout';
@@ -20,6 +22,7 @@ import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminRoomsPage from './pages/admin/AdminRoomsPage';
 import AdminGalleryPage from './pages/admin/AdminGalleryPage';
+import AdminAttractionsPage from './pages/admin/AdminAttractionsPage';
 import AdminReservationsPage from './pages/admin/AdminReservationsPage';
 import AdminFinancePage from './pages/admin/AdminFinancePage';
 import AdminBlogPage from './pages/admin/AdminBlogPage';
@@ -78,6 +81,8 @@ export default function App() {
             <Route path="/acomodacoes" element={<AccommodationsPage />} />
             <Route path="/acomodacoes/:slug" element={<RoomDetailPage />} />
             <Route path="/sobre-localizacao" element={<AboutLocationPage />} />
+            <Route path="/galeria" element={<GalleryPage />} />
+            <Route path="/praias/:slug" element={<BeachDetailPage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="/contato" element={<ContactPage />} />
@@ -92,6 +97,7 @@ export default function App() {
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="acomodacoes" element={<AdminRoomsPage />} />
             <Route path="galeria" element={<AdminGalleryPage />} />
+            <Route path="praias" element={<AdminAttractionsPage />} />
             <Route path="reservas" element={<AdminReservationsPage />} />
             <Route path="financeiro" element={<AdminFinancePage />} />
             <Route path="blog" element={<AdminBlogPage />} />

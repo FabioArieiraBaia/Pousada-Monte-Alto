@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { 
   Waves, Sun, Heart, ShieldCheck, MapPin, 
   MessageCircle, Star, Sparkles, ArrowRight, 
-  ChevronRight, PawPrint, Video, Compass, Award, Calendar, Play, X
+  ChevronRight, PawPrint, Video, Compass, Award, Calendar, Play, X,
+  Camera, ChevronLeft
 } from 'lucide-react';
 import AvailabilitySearchBar from '../../components/AvailabilitySearchBar';
 import RoomCard from '../../components/RoomCard';
@@ -21,7 +22,7 @@ export default function HomePage() {
   const { heroMode, setHeroMode } = useVideoBackground();
   
   const [videoTourOpen, setVideoTourOpen] = useState(false);
-  const [lightboxPhoto, setLightboxPhoto] = useState(null);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   const [rooms, setRooms] = useState([]);
   const [blogPosts, setBlogPosts] = useState([]);
@@ -305,50 +306,115 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {activeGallery.map((img) => (
+        {/* Gallery Grid (Limited to 6 Photos on Home) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          {activeGallery.slice(0, 6).map((img, idx) => (
             <div
-              key={img.id}
-              onClick={() => setLightboxPhoto(img)}
-              className="group relative h-48 sm:h-64 rounded-3xl overflow-hidden shadow-xl bg-stone-900/60 border border-white/20 cursor-pointer"
+              key={img.id || idx}
+              onClick={() => setLightboxIndex(idx)}
+              className="group relative h-48 sm:h-72 rounded-3xl overflow-hidden shadow-2xl bg-stone-900/60 border border-white/20 cursor-pointer hover:border-amber-400/50 transition-all duration-300"
             >
               <img
                 src={img.image_url}
                 alt={img.title}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 loading="lazy"
                 decoding="async"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                <span className="text-white text-xs sm:text-sm font-semibold">{img.title}</span>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity flex items-end p-4 sm:p-5">
+                <span className="text-white text-xs sm:text-sm font-serif font-bold drop-shadow-md">{img.title}</span>
               </div>
             </div>
           ))}
         </div>
+
+        {/* View All Photos Button */}
+        <div className="text-center pt-8">
+          <Link
+            to="/galeria"
+            className="inline-flex items-center gap-2.5 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold px-8 py-4 rounded-full shadow-2xl transition-all transform hover:scale-105 uppercase tracking-wider text-xs"
+          >
+            <Camera className="w-4 h-4" />
+            <span>{t('gallery.allPhotosCount', { count: activeGallery.length, defaultValue: `Ver Galeria Completa (${activeGallery.length} fotos)` })}</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
       </section>
 
-      {/* Lightbox Modal */}
-      {lightboxPhoto && (
+      {/* Fullscreen Lightbox Modal with Next/Prev Carousel Controls */}
+      {lightboxIndex !== null && activeGallery[lightboxIndex] && (
         <div
-          onClick={() => setLightboxPhoto(null)}
-          className="fixed inset-0 z-50 bg-stone-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in cursor-pointer"
+          onClick={() => setLightboxIndex(null)}
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-6 animate-fade-in cursor-pointer"
         >
-          <div className="relative max-w-4xl w-full max-h-[85vh] rounded-3xl overflow-hidden shadow-2xl bg-black border border-white/20">
-            <button
-              onClick={() => setLightboxPhoto(null)}
-              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <img
-              src={lightboxPhoto.image_url}
-              alt={lightboxPhoto.title}
-              className="w-full h-full max-h-[75vh] object-contain mx-auto"
-            />
-            <div className="p-4 bg-stone-950 text-white text-center font-serif font-bold text-base">
-              {lightboxPhoto.title}
+          {/* Top Bar */}
+          <div className="flex items-center justify-between text-white z-30 pb-3 border-b border-white/10" onClick={e => e.stopPropagation()}>
+            <div>
+              <span className="text-xs text-amber-400 font-bold uppercase tracking-wider block">Galeria Pousada Monte Alto</span>
+              <h4 className="font-serif font-bold text-lg text-white">{activeGallery[lightboxIndex].title}</h4>
+              <span className="text-xs text-stone-400">Foto {lightboxIndex + 1} de {activeGallery.length}</span>
             </div>
+            <button
+              onClick={() => setLightboxIndex(null)}
+              className="p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
+
+          {/* Photo Center */}
+          <div className="relative flex-1 flex items-center justify-center my-3 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <img
+              src={activeGallery[lightboxIndex].image_url}
+              alt={activeGallery[lightboxIndex].title}
+              className="max-h-[78vh] max-w-[95vw] object-contain rounded-2xl shadow-2xl select-none"
+            />
+
+            {/* Prev / Next Buttons */}
+            {activeGallery.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxIndex((lightboxIndex - 1 + activeGallery.length) % activeGallery.length);
+                  }}
+                  className="absolute left-2 sm:left-6 p-4 rounded-full bg-black/70 hover:bg-amber-500 hover:text-stone-950 text-white transition-all shadow-2xl hover:scale-110"
+                  title="Foto Anterior"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxIndex((lightboxIndex + 1) % activeGallery.length);
+                  }}
+                  className="absolute right-2 sm:right-6 p-4 rounded-full bg-black/70 hover:bg-amber-500 hover:text-stone-950 text-white transition-all shadow-2xl hover:scale-110"
+                  title="Próxima Foto"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Bottom Thumbnails */}
+          {activeGallery.length > 1 && (
+            <div className="flex items-center justify-center gap-2 overflow-x-auto py-2 z-30 scrollbar-thin" onClick={e => e.stopPropagation()}>
+              {activeGallery.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setLightboxIndex(idx)}
+                  className={`h-14 sm:h-16 aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all shrink-0 bg-stone-900 ${
+                    lightboxIndex === idx
+                      ? 'border-amber-500 scale-105 ring-2 ring-amber-400/60'
+                      : 'border-white/20 opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

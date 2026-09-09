@@ -6,7 +6,8 @@
     "blog": "Consejos y Blog",
     "contact": "Contacto",
     "bookNow": "Reservar Ahora",
-    "admin": "Panel Admin"
+    "admin": "Panel Admin",
+    "gallery": "Galería"
   },
   "hero": {
     "badge": "Frente al mar en Monte Alto • Arraial do Cabo",
@@ -111,7 +112,18 @@
     "beach5": "Playas de Pontal do Atalaia",
     "beach5Desc": "A 20 min en coche. Las legendarias escaleras de madera y aguas color turquesa.",
     "beach6": "Praia do Forno",
-    "beach6Desc": "A 18 min en coche + sendero panorámico fácil. Bahía calma con tortugas marinas."
+    "beach6Desc": "A 18 min en coche + sendero panorámico fácil. Bahía calma con tortugas marinas.",
+    "badge": "Nuestra Historia y Ubicación",
+    "guideBadge": "Distancias y Rutas",
+    "guideTitle": "Guía de Distancias y Playas",
+    "guideSub": "Descubre las playas más deslumbrantes de la Región de los Lagos con tiempos de viaje y rutas GPS desde la Pousada Monte Alto.",
+    "seeDetails": "Ver Detalles",
+    "traceRoute": "Trazar Ruta",
+    "beachTips": "Consejos de Visita",
+    "beachVirtualTour": "Tour Virtual en Video",
+    "howToGetThere": "Cómo Llegar",
+    "bookToVisit": "Hospédate en Pousada Monte Alto",
+    "backToBeaches": "Volver a la Guía de Playas"
   },
   "blog": {
     "title": "Blog de la Posada",
@@ -142,5 +154,18 @@
     "contactInfo": "Contacto y Ubicación",
     "copyright": "Todos los derechos reservados.",
     "adminLink": "Área de Administración"
+  },
+  "gallery": {
+    "title": "Galería de Fotos",
+    "subtitle": "Explora cada rincón de Pousada Monte Alto, nuestras playas y atardeceres inolvidables",
+    "viewAll": "Ver Todas las Fotos de la Galería",
+    "allPhotosCount": "Ver Galería Completa ({{count}} fotos)",
+    "backHome": "Volver a la Página Principal",
+    "categoryAll": "Todas las Fotos",
+    "categoryPousada": "La Posada",
+    "categorySuites": "Suites y Lofts",
+    "categoryPraia": "Playas de Arraial",
+    "categoryLagoa": "Laguna y Atardecer",
+    "photoIndex": "Foto {{current}} de {{total}}"
   }
 }

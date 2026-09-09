@@ -143,6 +143,21 @@ export const api = {
     body: JSON.stringify(data)
   }),
 
+  // Attractions / Beaches Guide
+  getAttractions: (all = false) => request(`/attractions${all ? '?all=1' : ''}`),
+  getAttractionBySlug: (slug) => request(`/attractions/${slug}`),
+  createAttraction: (data) => request('/attractions', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateAttraction: (id, data) => request(`/attractions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  deleteAttraction: (id) => request(`/attractions/${id}`, {
+    method: 'DELETE'
+  }),
+
   // Upload
   uploadImage: async (file) => {
     const token = getAuthToken();

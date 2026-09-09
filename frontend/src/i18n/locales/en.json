@@ -6,7 +6,8 @@
     "blog": "Tips & Blog",
     "contact": "Contact",
     "bookNow": "Book Now",
-    "admin": "Admin Panel"
+    "admin": "Admin Panel",
+    "gallery": "Gallery"
   },
   "hero": {
     "badge": "Beachfront in Monte Alto • Arraial do Cabo",
@@ -111,7 +112,18 @@
     "beach5": "Pontal do Atalaia Beaches",
     "beach5Desc": "20 min drive. Famous wooden staircases and surreal turquoise water.",
     "beach6": "Praia do Forno",
-    "beach6Desc": "18 min drive + scenic easy trail. Calm bay rich in sea turtles."
+    "beach6Desc": "18 min drive + scenic easy trail. Calm bay rich in sea turtles.",
+    "badge": "Our Story & Location",
+    "guideBadge": "Distances & Itineraries",
+    "guideTitle": "Beach & Distance Guide",
+    "guideSub": "Discover the most stunning beaches in the Lakes Region with travel times and GPS routes from Pousada Monte Alto.",
+    "seeDetails": "View Details",
+    "traceRoute": "Trace Route",
+    "beachTips": "Visitor Tips",
+    "beachVirtualTour": "Virtual Video Tour",
+    "howToGetThere": "How to Get There",
+    "bookToVisit": "Stay at Pousada Monte Alto",
+    "backToBeaches": "Back to Beach Guide"
   },
   "blog": {
     "title": "Pousada Blog",
@@ -142,5 +154,18 @@
     "contactInfo": "Contact & Location",
     "copyright": "All rights reserved.",
     "adminLink": "Admin Area"
+  },
+  "gallery": {
+    "title": "Photo Gallery",
+    "subtitle": "Explore every corner of Pousada Monte Alto, our beaches and unforgettable sunsets",
+    "viewAll": "View All Gallery Photos",
+    "allPhotosCount": "View Full Gallery ({{count}} photos)",
+    "backHome": "Back to Home",
+    "categoryAll": "All Photos",
+    "categoryPousada": "The Inn",
+    "categorySuites": "Suites & Lofts",
+    "categoryPraia": "Arraial Beaches",
+    "categoryLagoa": "Lagoon & Sunset",
+    "photoIndex": "Photo {{current}} of {{total}}"
   }
 }

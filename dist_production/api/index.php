@@ -15,6 +15,7 @@ require_once __DIR__ . '/controllers/FinanceController.php';
 require_once __DIR__ . '/controllers/BlogController.php';
 require_once __DIR__ . '/controllers/SettingsController.php';
 require_once __DIR__ . '/controllers/GalleryController.php';
+require_once __DIR__ . '/controllers/AttractionsController.php';
 require_once __DIR__ . '/controllers/UploadController.php';
 
 $pdo = getDatabaseConnection();
@@ -98,6 +99,30 @@ try {
     }
     if (preg_match('#^/accommodations/([^/]+)$#', $path, $m) && $method === 'GET') {
         AccommodationsController::getBySlug($pdo, $m[1]);
+        exit();
+    }
+
+    
+    // --- ATTRACTIONS / BEACHES ROUTES ---
+    if ($path === '/attractions' && $method === 'GET') {
+        AttractionsController::getAll($pdo);
+        exit();
+    }
+    if ($path === '/attractions' && $method === 'POST') {
+        AttractionsController::create($pdo);
+        exit();
+    }
+    if (preg_match('#^/attractions/(\d+)$#', $path, $m)) {
+        if ($method === 'PUT') {
+            AttractionsController::update($pdo, $m[1]);
+            exit();
+        } elseif ($method === 'DELETE') {
+            AttractionsController::delete($pdo, $m[1]);
+            exit();
+        }
+    }
+    if (preg_match('#^/attractions/([^/]+)$#', $path, $m) && $method === 'GET') {
+        AttractionsController::getBySlug($pdo, $m[1]);
         exit();
     }
 

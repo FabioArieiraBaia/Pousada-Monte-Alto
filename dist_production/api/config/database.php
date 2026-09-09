@@ -145,7 +145,46 @@ function initDatabase($pdo) {
         setting_value TEXT
     )");
 
+    
+    // 9. Gallery Items
+    $pdo->exec("CREATE TABLE IF NOT EXISTS gallery_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        image_url TEXT NOT NULL,
+        category TEXT DEFAULT 'geral',
+        order_index INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    // 10. Tourist Attractions / Beaches Guide
+    $pdo->exec("CREATE TABLE IF NOT EXISTS tourist_attractions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        slug TEXT UNIQUE NOT NULL,
+        name_pt TEXT NOT NULL,
+        name_en TEXT NOT NULL,
+        name_es TEXT NOT NULL,
+        distance_label_pt TEXT,
+        distance_label_en TEXT,
+        distance_label_es TEXT,
+        duration_badge_pt TEXT,
+        duration_badge_en TEXT,
+        duration_badge_es TEXT,
+        description_pt TEXT,
+        description_en TEXT,
+        description_es TEXT,
+        tips_pt TEXT,
+        tips_en TEXT,
+        tips_es TEXT,
+        image_url TEXT NOT NULL,
+        youtube_video_url TEXT,
+        maps_url TEXT,
+        order_index INTEGER DEFAULT 0,
+        is_active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
     seedInitialData($pdo);
+    seedAttractionsAndGalleryIfEmpty($pdo);
 }
 
 function seedInitialData($pdo) {
@@ -353,6 +392,191 @@ function seedInitialData($pdo) {
         $stmtSet = $pdo->prepare("INSERT OR REPLACE INTO site_settings (setting_key, setting_value) VALUES (?, ?)");
         foreach ($settings as $k => $v) {
             $stmtSet->execute([$k, $v]);
+        }
+    }
+}
+
+
+function seedAttractionsAndGalleryIfEmpty($pdo) {
+    // 1. Seed Attractions / Beaches if empty
+    $stmtA = $pdo->query("SELECT COUNT(*) as count FROM tourist_attractions");
+    if ($stmtA->fetch()['count'] == 0) {
+        $beaches = [
+            [
+                'slug' => 'praia-de-monte-alto',
+                'name_pt' => 'Praia de Monte Alto',
+                'name_en' => 'Monte Alto Beach',
+                'name_es' => 'Playa de Monte Alto',
+                'distance_label_pt' => 'Na porta da pousada',
+                'distance_label_en' => 'Right outside the inn',
+                'distance_label_es' => 'En la puerta de la posada',
+                'duration_badge_pt' => 'Pé na areia (0 min)',
+                'duration_badge_en' => 'Right on the beach (0 min)',
+                'duration_badge_es' => 'Pie en la arena (0 min)',
+                'description_pt' => 'Praia extensa de areias brancas e mar cristalino na porta da pousada. Um verdadeiro refúgio intocado na Restinga de Massambaba, perfeito para caminhadas, pesca esportiva e kitesurf.',
+                'description_en' => 'Expansive beach with white sands and crystal clear ocean right outside the inn. An untouched paradise in Restinga de Massambaba, perfect for strolls, fishing, and kitesurfing.',
+                'description_es' => 'Playa virgen de arenas blancas y mar transparente en la puerta de la posada. Refugio natural en la Restinga de Massambaba, ideal para caminatas y kitesurf.',
+                'tips_pt' => 'Praia tranquila e sem o tumulto do centro. Excelente para quem busca sossego e contato puro com a natureza costeira.',
+                'tips_en' => 'Peaceful beach away from downtown crowds. Perfect for pure relaxation and nature immersion.',
+                'tips_es' => 'Playa serena sin aglomeraciones. Ideal para desconectar y disfrutar de la naturaleza.',
+                'image_url' => 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+                'youtube_video_url' => 'https://www.youtube.com/watch?v=0kH8s4Ue7w8',
+                'maps_url' => 'https://www.google.com/maps/dir/?api=1&destination=-22.9288,-42.0615',
+                'order_index' => 1
+            ],
+            [
+                'slug' => 'lagoa-de-araruama',
+                'name_pt' => 'Lagoa de Araruama (Pôr do Sol)',
+                'name_en' => 'Araruama Lagoon (Sunset)',
+                'name_es' => 'Laguna de Araruama (Atardecer)',
+                'distance_label_pt' => '500 metros',
+                'distance_label_en' => '500 meters away',
+                'distance_label_es' => '500 metros',
+                'duration_badge_pt' => '3 min a pé / carro',
+                'duration_badge_en' => '3 min walk / drive',
+                'duration_badge_es' => '3 min a pie / auto',
+                'description_pt' => 'A 3 minutos da pousada, a Lagoa de Araruama oferece águas mornas, calmas e salinas. O pôr do sol mais espetacular de Arraial do Cabo, com o céu tingido de tons dourados e violetas.',
+                'description_en' => 'Just 3 minutes from the inn, Lake Araruama offers warm, peaceful waters and the most stunning sunset in the entire Lakes Region.',
+                'description_es' => 'A 3 minutos de la posada, la Laguna de Araruama ofrece aguas tibias y calmas con el atardecer más espectacular de Arraial del Cabo.',
+                'tips_pt' => 'Ideal para stand up paddle, caiaque e crianças. Não perca o visual do entardecer entre 17h e 18h.',
+                'tips_en' => 'Great for paddleboarding, kayaking, and families. Don\'t miss the sunset between 5PM and 6PM.',
+                'tips_es' => 'Perfecto para paddle surf y niños. No te pierdas la puesta de sol entre las 17h y 18h.',
+                'image_url' => 'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80',
+                'youtube_video_url' => 'https://www.youtube.com/watch?v=kY3P1x_wNq0',
+                'maps_url' => 'https://www.google.com/maps/dir/?api=1&destination=Lagoa+de+Araruama+Monte+Alto+Arraial+do+Cabo',
+                'order_index' => 2
+            ],
+            [
+                'slug' => 'praia-grande',
+                'name_pt' => 'Praia Grande',
+                'name_en' => 'Praia Grande',
+                'name_es' => 'Playa Grande',
+                'distance_label_pt' => '9 km',
+                'distance_label_en' => '9 km away',
+                'distance_label_es' => '9 km',
+                'duration_badge_pt' => '10-12 min de carro',
+                'duration_badge_en' => '10-12 min drive',
+                'duration_badge_es' => '10-12 min en auto',
+                'description_pt' => 'A mais vibrante praia urbana de Arraial do Cabo. Conta com amplo calçadão, quiosques gastronômicos, artesanato e o sol se pondo diretamente dentro do oceano Atlântico.',
+                'description_en' => 'The vibrant main beach of Arraial do Cabo with restaurants, boardwalk strolls, and dramatic open-ocean sunsets.',
+                'description_es' => 'La playa urbana principal con gastronomía costera, quioscos y atardecer sobre el océano.',
+                'tips_pt' => 'Ótima para surfe e passeios de fim de tarde. Visite a famosa estátua de Flávia Alessandra no calçadão.',
+                'tips_en' => 'Great surf spot and lively afternoon promenade. Check out the Flavia Alessandra statue.',
+                'tips_es' => 'Excelente para surf y paseo vespertino por el malecón.',
+                'image_url' => 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
+                'youtube_video_url' => 'https://www.youtube.com/watch?v=0kH8s4Ue7w8',
+                'maps_url' => 'https://www.google.com/maps/dir/?api=1&destination=Praia+Grande+Arraial+do+Cabo',
+                'order_index' => 3
+            ],
+            [
+                'slug' => 'prainha',
+                'name_pt' => 'Prainha',
+                'name_en' => 'Prainha',
+                'name_es' => 'Prainha',
+                'distance_label_pt' => '11 km',
+                'distance_label_en' => '11 km away',
+                'distance_label_es' => '11 km',
+                'duration_badge_pt' => '15 min de carro',
+                'duration_badge_en' => '15 min drive',
+                'duration_badge_es' => '15 min en auto',
+                'description_pt' => 'O cartão de visitas na chegada à cidade. Águas calmas em tons de azul turquesa caribenho, cercada por morros verdes e com quiosques com petiscos de frutos do mar.',
+                'description_en' => 'The postcard entrance of Arraial do Cabo. Turquoise waters with calm gentle waves and seafood beach kiosks.',
+                'description_es' => 'La postal de bienvenida con aguas turquesas serenas y quioscos gastronómicos.',
+                'tips_pt' => 'Excelente para banho com crianças e passeios de caiaque ou banana boat.',
+                'tips_en' => 'Ideal for kids swimming and kayak rentals.',
+                'tips_es' => 'Ideal para familias y alquiler de kayaks.',
+                'image_url' => 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+                'youtube_video_url' => '',
+                'maps_url' => 'https://www.google.com/maps/dir/?api=1&destination=Prainha+Arraial+do+Cabo',
+                'order_index' => 4
+            ],
+            [
+                'slug' => 'prainhas-do-pontal-do-atalaia',
+                'name_pt' => 'As Prainhas do Pontal do Atalaia',
+                'name_en' => 'Pontal do Atalaia Beaches',
+                'name_es' => 'Prainhas del Pontal do Atalaia',
+                'distance_label_pt' => '14 km',
+                'distance_label_en' => '14 km away',
+                'distance_label_es' => '14 km',
+                'duration_badge_pt' => '20 min de carro',
+                'duration_badge_en' => '20 min drive',
+                'duration_badge_es' => '20 min en auto',
+                'description_pt' => 'Cenário paradisíaco mundialmente conhecido pela escadaria de madeira de 255 degraus. Areia fina como talco e água transparente estilo Caribe. Em maré baixa, surge a Gruta do Amor.',
+                'description_en' => 'Iconic wooden staircase descending to breathtaking powder-white sands and emerald clear waters.',
+                'description_es' => 'Escenario de ensueño con la famosa escalera de madera de 255 escalones y arenas blanquísimas.',
+                'tips_pt' => 'Tire fotos panorâmicas no topo da escadaria. Acesso por carro pelo condomínio ou táxi boat da Praia dos Anjos.',
+                'tips_en' => 'Snap panoramic photos from the top of the stairs. Accessible by car or boat taxi.',
+                'tips_es' => 'Fotos espectaculares desde arriba de la escalera. Acceso en auto o en taxi boat.',
+                'image_url' => 'https://images.unsplash.com/photo-1510414842594-a61752d335c5?auto=format&fit=crop&w=1200&q=80',
+                'youtube_video_url' => 'https://www.youtube.com/watch?v=0kH8s4Ue7w8',
+                'maps_url' => 'https://www.google.com/maps/dir/?api=1&destination=Prainhas+do+Pontal+do+Atalaia',
+                'order_index' => 5
+            ],
+            [
+                'slug' => 'praia-do-forno',
+                'name_pt' => 'Praia do Forno',
+                'name_en' => 'Forno Beach',
+                'name_es' => 'Playa del Forno',
+                'distance_label_pt' => '12 km',
+                'distance_label_en' => '12 km away',
+                'distance_label_es' => '12 km',
+                'duration_badge_pt' => '18 min de carro + trilha',
+                'duration_badge_en' => '18 min drive + trail',
+                'duration_badge_es' => '18 min en auto + sendero',
+                'description_pt' => 'Enseada preservada cercada por morros verdes e águas calmas e mornas com presença frequente de tartarugas marinhas. Abriga restaurante flutuante e quiosques rústicos.',
+                'description_en' => 'Preserved cove flanked by lush forest, calm waters with sea turtles, and floating restaurants.',
+                'description_es' => 'Ensenada virgen con abundante fauna marina (tortugas) y restaurantes flotantes.',
+                'tips_pt' => 'Trilha pavimentada de 15 min a partir da Praia dos Anjos com mirante de tirar o fôlego.',
+                'tips_en' => 'Panoramic 15-minute paved trail departing from Praia dos Anjos.',
+                'tips_es' => 'Sendero panorámico de 15 minutos desde Praia dos Anjos.',
+                'image_url' => 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+                'youtube_video_url' => '',
+                'maps_url' => 'https://www.google.com/maps/dir/?api=1&destination=Praia+do+Forno+Arraial+do+Cabo',
+                'order_index' => 6
+            ]
+        ];
+
+        $stmtIns = $pdo->prepare("INSERT INTO tourist_attractions (
+            slug, name_pt, name_en, name_es,
+            distance_label_pt, distance_label_en, distance_label_es,
+            duration_badge_pt, duration_badge_en, duration_badge_es,
+            description_pt, description_en, description_es,
+            tips_pt, tips_en, tips_es,
+            image_url, youtube_video_url, maps_url,
+            order_index, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        foreach ($beaches as $b) {
+            $stmtIns->execute([
+                $b['slug'], $b['name_pt'], $b['name_en'], $b['name_es'],
+                $b['distance_label_pt'], $b['distance_label_en'], $b['distance_label_es'],
+                $b['duration_badge_pt'], $b['duration_badge_en'], $b['duration_badge_es'],
+                $b['description_pt'], $b['description_en'], $b['description_es'],
+                $b['tips_pt'], $b['tips_en'], $b['tips_es'],
+                $b['image_url'], $b['youtube_video_url'], $b['maps_url'],
+                $b['order_index'], 1
+            ]);
+        }
+    }
+
+    // 2. Seed Gallery if fewer than 8 photos
+    $stmtG = $pdo->query("SELECT COUNT(*) as count FROM gallery_items");
+    if ($stmtG->fetch()['count'] < 6) {
+        $gallery = [
+            ['Praia de Monte Alto ao Amanhecer', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80', 'praia', 1],
+            ['Suíte Master Pé na Areia', 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80', 'suites', 2],
+            ['Lagoa de Araruama - Pôr do Sol Dourado', 'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80', 'lagoa', 3],
+            ['Loft Massambaba Família', 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1200&q=80', 'suites', 4],
+            ['Suíte Romântica Sunset', 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80', 'suites', 5],
+            ['Piscina & Área de Descanso', 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80', 'pousada', 6],
+            ['Jardim Tropical & Redário', 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80', 'pousada', 7],
+            ['Café da Manhã Artesanal', 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=1200&q=80', 'pousada', 8],
+            ['As Prainhas do Pontal do Atalaia', 'https://images.unsplash.com/photo-1510414842594-a61752d335c5?auto=format&fit=crop&w=1200&q=80', 'praia', 9],
+            ['Prainha de Arraial do Cabo', 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80', 'praia', 10]
+        ];
+        $stmtGIns = $pdo->prepare("INSERT INTO gallery_items (title, image_url, category, order_index) VALUES (?, ?, ?, ?)");
+        foreach ($gallery as $g) {
+            $stmtGIns->execute([$g[0], $g[1], $g[2], $g[3]]);
         }
     }
 }

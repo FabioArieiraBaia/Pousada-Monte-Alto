@@ -49,6 +49,7 @@ export default function Navbar() {
     { to: '/', label: t('nav.home') },
     { to: '/acomodacoes', label: t('nav.accommodations') },
     { to: '/sobre-localizacao', label: t('nav.about') },
+    { to: '/galeria', label: t('nav.gallery', { defaultValue: 'Galeria' }) },
     { to: '/blog', label: t('nav.blog') },
     { to: '/contato', label: t('nav.contact') },
   ];
