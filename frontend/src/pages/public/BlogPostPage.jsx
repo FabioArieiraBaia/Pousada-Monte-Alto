@@ -3,7 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   Calendar, Clock, ArrowLeft, Video, Share2, Tag, 
-  Check, Copy, MessageCircle, Send 
+  Check, Copy, MessageCircle, Send, ChevronLeft, ChevronRight,
+  Maximize2, Image as ImageIcon, X
 } from 'lucide-react';
 import YouTubeEmbed from '../../components/YouTubeEmbed';
 import SEOHead from '../../components/SEOHead';
@@ -17,6 +18,7 @@ export default function BlogPostPage() {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -25,6 +27,38 @@ export default function BlogPostPage() {
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  let galleryList = [];
+  if (post?.gallery_photos) {
+    if (Array.isArray(post.gallery_photos)) galleryList = post.gallery_photos;
+    else if (typeof post.gallery_photos === 'string') {
+      try { galleryList = JSON.parse(post.gallery_photos); } catch (e) { galleryList = []; }
+    }
+  }
+  if (!Array.isArray(galleryList)) galleryList = [];
+
+  const handlePrevPhoto = (e) => {
+    if (e) e.stopPropagation();
+    if (!galleryList.length) return;
+    setLightboxIndex((lightboxIndex - 1 + galleryList.length) % galleryList.length);
+  };
+
+  const handleNextPhoto = (e) => {
+    if (e) e.stopPropagation();
+    if (!galleryList.length) return;
+    setLightboxIndex((lightboxIndex + 1) % galleryList.length);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (lightboxIndex === null) return;
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'ArrowLeft') handlePrevPhoto();
+      if (e.key === 'ArrowRight') handleNextPhoto();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, galleryList]);
 
   if (loading) {
     return (
@@ -224,6 +258,43 @@ export default function BlogPostPage() {
           dangerouslySetInnerHTML={{ __html: content }}
         />
 
+        {/* 📸 GALERIA DE FOTOS DA MATÉRIA (SE HOUVER FOTOS ADICIONAIS) 📸 */}
+        {galleryList.length > 0 && (
+          <div className="pt-6 border-t border-white/15 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="font-serif font-bold text-white text-lg sm:text-xl flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-amber-400" />
+                <span>Galeria de Fotos da Matéria</span>
+              </span>
+              <span className="text-xs bg-amber-500 text-stone-950 font-bold px-3 py-1 rounded-full shadow-md">
+                📸 {galleryList.length} {galleryList.length === 1 ? 'foto' : 'fotos'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 pt-2">
+              {galleryList.map((imgUrl, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => setLightboxIndex(idx)}
+                  className="group relative h-40 sm:h-52 rounded-2xl overflow-hidden shadow-lg bg-stone-900 border border-white/20 cursor-pointer hover:border-amber-400 transition-all duration-300"
+                >
+                  <img
+                    src={imgUrl}
+                    alt={`Foto ${idx + 1}`}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                      <Maximize2 className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 📢 Share Section at bottom of article */}
         <div className="pt-6 border-t border-white/15 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/10 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/15">
@@ -323,6 +394,83 @@ export default function BlogPostPage() {
           </Link>
         </div>
       </div>
+
+      {/* 🔍 FULLSCREEN LIGHTBOX COM CARROSSEL PARA AS FOTOS DA MATÉRIA 🔍 */}
+      {lightboxIndex !== null && galleryList[lightboxIndex] && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-6 animate-fade-in"
+          onClick={() => setLightboxIndex(null)}
+        >
+          {/* Top Bar */}
+          <div className="flex items-center justify-between text-white z-30 pb-3 border-b border-white/10" onClick={e => e.stopPropagation()}>
+            <div>
+              <span className="text-xs text-amber-400 font-bold uppercase tracking-wider block">
+                Galeria da Matéria • Pousada Monte Alto
+              </span>
+              <h4 className="font-serif font-bold text-lg text-white">
+                {title}
+              </h4>
+              <span className="text-xs text-stone-400">
+                Foto {lightboxIndex + 1} de {galleryList.length}
+              </span>
+            </div>
+            <button
+              onClick={() => setLightboxIndex(null)}
+              className="p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Photo Center */}
+          <div className="relative flex-1 flex items-center justify-center my-3 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <img
+              src={galleryList[lightboxIndex]}
+              alt={`Foto ${lightboxIndex + 1}`}
+              className="max-h-[78vh] max-w-[95vw] object-contain rounded-2xl shadow-2xl select-none"
+            />
+
+            {/* Prev / Next Buttons */}
+            {galleryList.length > 1 && (
+              <>
+                <button
+                  onClick={handlePrevPhoto}
+                  className="absolute left-2 sm:left-6 p-4 rounded-full bg-black/70 hover:bg-amber-500 hover:text-stone-950 text-white transition-all shadow-2xl hover:scale-110"
+                  title="Foto Anterior"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button
+                  onClick={handleNextPhoto}
+                  className="absolute right-2 sm:right-6 p-4 rounded-full bg-black/70 hover:bg-amber-500 hover:text-stone-950 text-white transition-all shadow-2xl hover:scale-110"
+                  title="Próxima Foto"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Bottom Thumbnails */}
+          {galleryList.length > 1 && (
+            <div className="flex items-center justify-center gap-2 overflow-x-auto py-2 z-30 scrollbar-thin" onClick={e => e.stopPropagation()}>
+              {galleryList.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setLightboxIndex(idx)}
+                  className={`h-14 sm:h-16 aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all shrink-0 bg-stone-900 ${
+                    lightboxIndex === idx
+                      ? 'border-amber-500 scale-105 ring-2 ring-amber-400/60'
+                      : 'border-white/20 opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
     </div>
   );

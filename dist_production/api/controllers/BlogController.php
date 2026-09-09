@@ -4,7 +4,7 @@
 class BlogController {
 
     public static function getAll($pdo, $publicOnly = true) {
-        $sql = "SELECT id, slug, title_pt, title_en, title_es, excerpt_pt, excerpt_en, excerpt_es, featured_image, youtube_video_url, tags, is_published, published_at FROM blog_posts";
+        $sql = "SELECT id, slug, title_pt, title_en, title_es, excerpt_pt, excerpt_en, excerpt_es, featured_image, gallery_photos, youtube_video_url, tags, is_published, published_at FROM blog_posts";
         if ($publicOnly) {
             $sql .= " WHERE is_published = 1";
         }
@@ -12,6 +12,15 @@ class BlogController {
         
         $stmt = $pdo->query($sql);
         $posts = $stmt->fetchAll();
+
+        foreach ($posts as &$p) {
+            if (!empty($p['gallery_photos'])) {
+                $decoded = json_decode($p['gallery_photos'], true);
+                $p['gallery_photos'] = is_array($decoded) ? $decoded : [];
+            } else {
+                $p['gallery_photos'] = [];
+            }
+        }
         
         echo json_encode(['success' => true, 'data' => $posts]);
     }
@@ -26,6 +35,13 @@ class BlogController {
             echo json_encode(['error' => 'Artigo não encontrado']);
             return;
         }
+
+        if (!empty($post['gallery_photos'])) {
+            $decoded = json_decode($post['gallery_photos'], true);
+            $post['gallery_photos'] = is_array($decoded) ? $decoded : [];
+        } else {
+            $post['gallery_photos'] = [];
+        }
         
         echo json_encode(['success' => true, 'data' => $post]);
     }
@@ -39,9 +55,11 @@ class BlogController {
             $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $data['title_pt'] ?? 'artigo-' . time())));
         }
         
+        $galleryPhotos = isset($data['gallery_photos']) ? (is_array($data['gallery_photos']) ? json_encode($data['gallery_photos']) : $data['gallery_photos']) : null;
+        
         $stmt = $pdo->prepare("INSERT INTO blog_posts 
-            (slug, title_pt, title_en, title_es, excerpt_pt, excerpt_en, excerpt_es, content_pt, content_en, content_es, featured_image, youtube_video_url, tags, is_published) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            (slug, title_pt, title_en, title_es, excerpt_pt, excerpt_en, excerpt_es, content_pt, content_en, content_es, featured_image, gallery_photos, youtube_video_url, tags, is_published) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
         $stmt->execute([
             $slug,
@@ -55,6 +73,7 @@ class BlogController {
             $data['content_en'] ?? '',
             $data['content_es'] ?? '',
             $data['featured_image'] ?? '',
+            $galleryPhotos,
             $data['youtube_video_url'] ?? '',
             $data['tags'] ?? '',
             isset($data['is_published']) ? intval($data['is_published']) : 1
@@ -67,18 +86,20 @@ class BlogController {
         requireAuth($pdo);
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         
+        $galleryPhotos = isset($data['gallery_photos']) ? (is_array($data['gallery_photos']) ? json_encode($data['gallery_photos']) : $data['gallery_photos']) : null;
+
         $stmt = $pdo->prepare("UPDATE blog_posts SET 
             title_pt = ?, title_en = ?, title_es = ?,
             excerpt_pt = ?, excerpt_en = ?, excerpt_es = ?,
             content_pt = ?, content_en = ?, content_es = ?,
-            featured_image = ?, youtube_video_url = ?, tags = ?,
+            featured_image = ?, gallery_photos = ?, youtube_video_url = ?, tags = ?,
             is_published = ?
             WHERE id = ?");
             
         $stmt->execute([
-            $data['title_pt'],
-            $data['title_en'] ?? $data['title_pt'],
-            $data['name_es'] ?? $data['title_pt'],
+            $data['title_pt'] ?? '',
+            $data['title_en'] ?? $data['title_pt'] ?? '',
+            $data['title_es'] ?? $data['title_pt'] ?? '',
             $data['excerpt_pt'] ?? '',
             $data['excerpt_en'] ?? '',
             $data['excerpt_es'] ?? '',
@@ -86,6 +107,7 @@ class BlogController {
             $data['content_en'] ?? '',
             $data['content_es'] ?? '',
             $data['featured_image'] ?? '',
+            $galleryPhotos,
             $data['youtube_video_url'] ?? '',
             $data['tags'] ?? '',
             isset($data['is_published']) ? intval($data['is_published']) : 1,

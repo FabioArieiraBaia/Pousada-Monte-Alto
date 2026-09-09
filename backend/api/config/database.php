@@ -133,11 +133,21 @@ function initDatabase($pdo) {
         content_en TEXT NOT NULL,
         content_es TEXT NOT NULL,
         featured_image TEXT,
+        gallery_photos TEXT,
         youtube_video_url TEXT,
         tags TEXT,
         is_published INTEGER DEFAULT 1,
         published_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
+
+    // Garantir coluna gallery_photos se tabela já existia
+    try {
+        $stmtCols = $pdo->query("PRAGMA table_info(blog_posts)");
+        $cols = $stmtCols->fetchAll(PDO::FETCH_COLUMN, 1);
+        if (!in_array('gallery_photos', $cols)) {
+            $pdo->exec("ALTER TABLE blog_posts ADD COLUMN gallery_photos TEXT");
+        }
+    } catch (Exception $e) {}
 
     // 8. Site Settings
     $pdo->exec("CREATE TABLE IF NOT EXISTS site_settings (
