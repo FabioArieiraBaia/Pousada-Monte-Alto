@@ -32,9 +32,27 @@ export default function GalleryPage() {
     { key: 'lagoa', label: t('gallery.categoryLagoa', { defaultValue: 'Lagoa & Pôr do Sol' }) },
   ];
 
+  const matchesCategory = (itemCat, filterKey) => {
+    if (filterKey === 'all') return true;
+    const cat = (itemCat || '').toLowerCase().trim();
+    if (filterKey === 'lagoa') return cat === 'lagoa' || cat === 'sunset';
+    if (filterKey === 'pousada') return cat === 'pousada' || cat === 'areas_comuns' || cat === 'geral';
+    if (filterKey === 'praia') return cat === 'praia';
+    if (filterKey === 'suites') return cat === 'suites' || cat === 'suite';
+    return cat === filterKey;
+  };
+
+  const getDisplayCategory = (itemCat) => {
+    const cat = (itemCat || '').toLowerCase().trim();
+    if (cat === 'lagoa' || cat === 'sunset') return t('gallery.categoryLagoa', { defaultValue: 'Lagoa & Pôr do Sol' });
+    if (cat === 'praia') return t('gallery.categoryPraia', { defaultValue: 'Praias de Arraial' });
+    if (cat === 'suites' || cat === 'suite') return t('gallery.categorySuites', { defaultValue: 'Suítes & Lofts' });
+    return t('gallery.categoryPousada', { defaultValue: 'A Pousada' });
+  };
+
   const filteredItems = activeCategory === 'all'
     ? gallery
-    : gallery.filter(item => (item.category || '').toLowerCase() === activeCategory);
+    : gallery.filter(item => matchesCategory(item.category, activeCategory));
 
   const handlePrev = (e) => {
     if (e) e.stopPropagation();
@@ -145,7 +163,7 @@ export default function GalleryPage() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity flex items-end justify-between p-5">
                 <div>
                   <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">
-                    {img.category || 'Pousada'}
+                    {getDisplayCategory(img.category)}
                   </span>
                   <h3 className="text-white text-sm sm:text-base font-serif font-bold drop-shadow-md">
                     {img.title}

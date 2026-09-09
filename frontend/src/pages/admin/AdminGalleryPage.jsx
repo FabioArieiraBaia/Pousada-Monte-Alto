@@ -16,17 +16,25 @@ export default function AdminGalleryPage() {
   const [form, setForm] = useState({
     title: '',
     image_url: '',
-    category: 'geral',
+    category: 'pousada',
     order_index: 0
   });
 
   const categories = [
-    { key: 'geral', label: 'Geral' },
-    { key: 'praia', label: 'Praia & Mar' },
+    { key: 'pousada', label: 'A Pousada & Ambientes' },
     { key: 'suites', label: 'Suítes & Lofts' },
-    { key: 'sunset', label: 'Pôr do Sol / Lagoa' },
-    { key: 'areas_comuns', label: 'Áreas Externas & Jardim' }
+    { key: 'praia', label: 'Praias de Arraial' },
+    { key: 'lagoa', label: 'Lagoa & Pôr do Sol' }
   ];
+
+  const getCategoryLabel = (catKey) => {
+    const key = (catKey || '').toLowerCase();
+    if (key === 'sunset' || key === 'lagoa') return 'Lagoa & Pôr do Sol';
+    if (key === 'geral' || key === 'areas_comuns' || key === 'pousada') return 'A Pousada & Ambientes';
+    if (key === 'suites' || key === 'suite') return 'Suítes & Lofts';
+    if (key === 'praia') return 'Praias de Arraial';
+    return categories.find(c => c.key === key)?.label || catKey || 'A Pousada';
+  };
 
   useEffect(() => {
     loadGallery();
@@ -43,11 +51,14 @@ export default function AdminGalleryPage() {
   const handleOpenModal = (item = null) => {
     if (item) {
       setEditingItem(item);
+      let cat = item.category || 'pousada';
+      if (cat === 'sunset') cat = 'lagoa';
+      if (cat === 'geral' || cat === 'areas_comuns') cat = 'pousada';
       setForm({
         id: item.id,
-        title: item.title || '',
-        image_url: item.image_url || '',
-        category: item.category || 'geral',
+        title: item.title,
+        image_url: item.image_url,
+        category: cat,
         order_index: item.order_index || 0
       });
     } else {
@@ -55,7 +66,7 @@ export default function AdminGalleryPage() {
       setForm({
         title: '',
         image_url: '',
-        category: 'geral',
+        category: 'pousada',
         order_index: items.length + 1
       });
     }
@@ -158,7 +169,7 @@ export default function AdminGalleryPage() {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute top-3 left-3 bg-stone-900/80 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">
-                  {categories.find(c => c.key === item.category)?.label || item.category}
+                  {getCategoryLabel(item.category)}
                 </div>
               </div>
 
