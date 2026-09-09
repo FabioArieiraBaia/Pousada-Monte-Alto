@@ -132,7 +132,13 @@
     "readTime": "5 min de lectura",
     "publishedOn": "Publicado el",
     "videoGuide": "Video Especial en el Artículo",
-    "sharePost": "Compartir",
+    "sharePost": "Compartir Artículo",
+    "shareWhatsApp": "WhatsApp",
+    "shareFacebook": "Facebook",
+    "shareTwitter": "Twitter / X",
+    "shareTelegram": "Telegram",
+    "copyLink": "Copiar Enlace",
+    "linkCopied": "¡Enlace copiado con éxito!",
     "backToBlog": "Volver al Blog"
   },
   "contact": {

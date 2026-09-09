@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Clock, ArrowLeft, Video, Share2, Tag } from 'lucide-react';
+import { 
+  Calendar, Clock, ArrowLeft, Video, Share2, Tag, 
+  Check, Copy, MessageCircle, Send 
+} from 'lucide-react';
 import YouTubeEmbed from '../../components/YouTubeEmbed';
 import SEOHead from '../../components/SEOHead';
 import { api } from '../../services/api';
@@ -13,6 +16,7 @@ export default function BlogPostPage() {
 
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -68,6 +72,33 @@ export default function BlogPostPage() {
     "description": excerpt
   };
 
+  const currentUrl = typeof window !== 'undefined' ? window.location.href : `https://fabioarieira.com/montealto/blog/${slug}`;
+  const shareText = `${title} - Pousada Monte Alto`;
+
+  const handleCopyLink = () => {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(currentUrl);
+    } else {
+      const textArea = document.createElement('textarea');
+      textArea.value = currentUrl;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
+  const shareLinks = {
+    whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareText}\n${currentUrl}`)}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`,
+    twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(currentUrl)}`,
+    telegram: `https://t.me/share/url?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(shareText)}`
+  };
+
   return (
     <div className="pt-28 pb-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       
@@ -80,8 +111,8 @@ export default function BlogPostPage() {
         schemaJson={blogSchema}
       />
 
-      {/* Back to Blog Button */}
-      <div>
+      {/* Back to Blog Button & Quick Share */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <Link
           to="/blog"
           className="inline-flex items-center gap-2 text-xs font-bold text-stone-900 hover:text-amber-600 transition-colors bg-white/95 backdrop-blur-md px-4 py-2 rounded-full border border-white/40 shadow-md hover:shadow-lg"
@@ -89,6 +120,61 @@ export default function BlogPostPage() {
           <ArrowLeft className="w-4 h-4" />
           <span>{t('blog.backToBlog')}</span>
         </Link>
+
+        {/* Quick Floating Share Buttons */}
+        <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-md">
+          <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider hidden sm:inline flex items-center gap-1">
+            <Share2 className="w-3.5 h-3.5" />
+            {t('blog.sharePost')}:
+          </span>
+          <a
+            href={shareLinks.whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white transition-all transform hover:scale-110 shadow-sm"
+            title="Compartilhar no WhatsApp"
+          >
+            <MessageCircle className="w-4 h-4" />
+          </a>
+          <a
+            href={shareLinks.facebook}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white transition-all transform hover:scale-110 shadow-sm"
+            title="Compartilhar no Facebook"
+          >
+            <span className="w-4 h-4 flex items-center justify-center font-bold text-xs">f</span>
+          </a>
+          <a
+            href={shareLinks.twitter}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 rounded-full bg-stone-900 hover:bg-black text-white transition-all transform hover:scale-110 shadow-sm border border-white/20"
+            title="Compartilhar no Twitter / X"
+          >
+            <span className="w-4 h-4 flex items-center justify-center font-black text-xs">𝕏</span>
+          </a>
+          <a
+            href={shareLinks.telegram}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 rounded-full bg-sky-500 hover:bg-sky-400 text-white transition-all transform hover:scale-110 shadow-sm"
+            title="Compartilhar no Telegram"
+          >
+            <Send className="w-4 h-4" />
+          </a>
+          <button
+            onClick={handleCopyLink}
+            className={`p-1.5 rounded-full transition-all transform hover:scale-110 shadow-sm ${
+              copied
+                ? 'bg-amber-500 text-stone-950 font-bold'
+                : 'bg-white/20 hover:bg-white/30 text-white'
+            }`}
+            title={copied ? t('blog.linkCopied') : t('blog.copyLink')}
+          >
+            {copied ? <Check className="w-4 h-4 text-stone-950" /> : <Copy className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Article Header (High-contrast glass card with crisp white title and black shadow) */}
@@ -132,26 +218,92 @@ export default function BlogPostPage() {
       )}
 
       {/* Article Content Container with White Text & Black Shadows */}
-      <article className="bg-black/55 backdrop-blur-xl p-6 sm:p-10 rounded-3xl border border-white/20 shadow-2xl space-y-6">
+      <article className="bg-black/55 backdrop-blur-xl p-6 sm:p-10 rounded-3xl border border-white/20 shadow-2xl space-y-8">
         <div
           className="blog-content text-white text-base sm:text-lg leading-relaxed space-y-4 font-normal"
           dangerouslySetInnerHTML={{ __html: content }}
         />
 
-        {/* Tags */}
-        {post.tags && (
-          <div className="pt-6 border-t border-white/15 flex flex-wrap items-center gap-2">
-            <Tag className="w-4 h-4 text-amber-400" />
-            {post.tags.split(',').map((tag, idx) => (
-              <span
-                key={idx}
-                className="text-xs bg-white/15 backdrop-blur-md text-white font-bold px-3.5 py-1.5 rounded-full border border-white/25 shadow-sm"
-              >
-                #{tag.trim()}
+        {/* 📢 Share Section at bottom of article */}
+        <div className="pt-6 border-t border-white/15 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/10 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/15">
+            <div className="flex items-center gap-2">
+              <Share2 className="w-5 h-5 text-amber-400" />
+              <span className="font-serif font-bold text-white text-sm sm:text-base">
+                {t('blog.sharePost', { defaultValue: 'Gostou deste artigo? Compartilhe com amigos:' })}
               </span>
-            ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={shareLinks.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md transform hover:scale-105"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>WhatsApp</span>
+              </a>
+
+              <a
+                href={shareLinks.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md transform hover:scale-105"
+              >
+                <span className="font-bold">f</span>
+                <span>Facebook</span>
+              </a>
+
+              <a
+                href={shareLinks.twitter}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 bg-stone-900 hover:bg-black text-white text-xs font-bold px-3.5 py-2 rounded-xl border border-white/20 transition-all shadow-md transform hover:scale-105"
+              >
+                <span className="font-bold">𝕏</span>
+                <span>Twitter</span>
+              </a>
+
+              <a
+                href={shareLinks.telegram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md transform hover:scale-105"
+              >
+                <Send className="w-4 h-4" />
+                <span>Telegram</span>
+              </a>
+
+              <button
+                onClick={handleCopyLink}
+                className={`inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md transform hover:scale-105 ${
+                  copied
+                    ? 'bg-amber-500 text-stone-950 ring-2 ring-amber-300'
+                    : 'bg-white/20 hover:bg-white/30 text-white border border-white/20'
+                }`}
+              >
+                {copied ? <Check className="w-4 h-4 text-stone-950" /> : <Copy className="w-4 h-4" />}
+                <span>{copied ? t('blog.linkCopied') : t('blog.copyLink')}</span>
+              </button>
+            </div>
           </div>
-        )}
+
+          {/* Tags */}
+          {post.tags && (
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <Tag className="w-4 h-4 text-amber-400" />
+              {post.tags.split(',').map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="text-xs bg-white/15 backdrop-blur-md text-white font-bold px-3.5 py-1.5 rounded-full border border-white/25 shadow-sm"
+                >
+                  #{tag.trim()}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </article>
 
       {/* Call to Action Card */}
