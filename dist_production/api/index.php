@@ -17,6 +17,7 @@ require_once __DIR__ . '/controllers/SettingsController.php';
 require_once __DIR__ . '/controllers/GalleryController.php';
 require_once __DIR__ . '/controllers/AttractionsController.php';
 require_once __DIR__ . '/controllers/UploadController.php';
+require_once __DIR__ . '/controllers/ChatController.php';
 
 $pdo = getDatabaseConnection();
 
@@ -223,6 +224,28 @@ try {
     }
     if ($path === '/settings' && $method === 'PUT') {
         SettingsController::updateSettings($pdo);
+        exit();
+    }
+
+    // --- CHAT AI & CONCIERGE ROUTES ---
+    if ($path === '/chat' && $method === 'POST') {
+        ChatController::handleChat($pdo);
+        exit();
+    }
+    if ($path === '/leads' && $method === 'GET') {
+        ChatController::getLeads($pdo);
+        exit();
+    }
+    if (preg_match('#^/leads/(\d+)$#', $path, $m) && $method === 'PUT') {
+        ChatController::updateLeadStatus($pdo, $m[1]);
+        exit();
+    }
+    if ($path === '/ai-settings' && $method === 'GET') {
+        ChatController::getAiSettings($pdo);
+        exit();
+    }
+    if ($path === '/ai-settings' && $method === 'PUT') {
+        ChatController::updateAiSettings($pdo);
         exit();
     }
 

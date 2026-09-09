@@ -193,6 +193,66 @@ function initDatabase($pdo) {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
+    // 11. Leads Capture (IA Concierge)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS leads_capture (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        whatsapp TEXT,
+        email TEXT,
+        checkin_date DATE,
+        checkout_date DATE,
+        guests INTEGER DEFAULT 2,
+        has_pets INTEGER DEFAULT 0,
+        accommodation_id INTEGER NULL,
+        reservation_id INTEGER NULL,
+        estimated_total REAL NULL,
+        notes TEXT,
+        status TEXT DEFAULT 'new', -- new, in_negotiation, converted, lost
+        chat_history TEXT, -- JSON array of messages
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (accommodation_id) REFERENCES accommodations(id) ON DELETE SET NULL,
+        FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE SET NULL
+    )");
+
+    // 12. AI Agent Settings & API Keys
+    $pdo->exec("CREATE TABLE IF NOT EXISTS ai_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        agent_name TEXT DEFAULT 'Marina - Concierge Monte Alto',
+        is_active INTEGER DEFAULT 1,
+        system_instructions TEXT,
+        welcome_message_pt TEXT DEFAULT 'Olá! Bem-vindo à Pousada Monte Alto em Arraial do Cabo. Como posso ajudar com sua hospedagem pé na areia hoje?',
+        welcome_message_en TEXT DEFAULT 'Hello! Welcome to Pousada Monte Alto in Arraial do Cabo. How can I help with your beachfront stay today?',
+        welcome_message_es TEXT DEFAULT '¡Hola! Bienvenido a Posada Monte Alto en Arraial do Cabo. ¿Cómo puedo ayudarte con tu estadía frente al mar hoy?',
+        api_keys_json TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    // Seed default ai_settings row if empty
+    try {
+        $checkAI = $pdo->query("SELECT COUNT(*) as count FROM ai_settings")->fetch();
+        if ($checkAI['count'] == 0) {
+            $defaultKeys = [
+                'AIzaSyCHGG9m1yJJy1ffn5OXnF4QtH4GkQU8sWo',
+                'AIzaSyDTq2Juy_-GBmUqUENkaMuEIT9pDaIpnyY',
+                'AIzaSyBVDPCS8_oMYVQQO0eHUysi7cSKzPMeD_Q',
+                'AIzaSyAW3_ob0bZSQ96GIpw3btCO_pihxSUynvg',
+                'AIzaSyB-V7bHPnrKtxZuOVLorob2bLsvscRWSSA',
+                'AIzaSyCDLzafLWD9P49plPqdvgjA2j3OfuWGreQ',
+                'AIzaSyDrxWGEeDTKI9Qb9wI5V-7PcVAC4suNTXM',
+                'AIzaSyBQRNLnzkpObcJAEipYpT9ghSlvB58f4Tg',
+                'AIzaSyDphR7H4w1_GkXcoxbZ9S0a_Nogf0Ama6E',
+                'AIzaSyDZFrvCFhMMlOAvIBIST0eTKT5XBC3sHrI',
+                'AIzaSyCW8D7QdaHCrGLwl087vJl34tHFw_IHof0',
+                'AIzaSyDBun_96_TZuoItLMkf9lSv7qvdkVmQGFo',
+                'AIzaSyDOnJLiyMNThtfghZ-u9CMRd9twQUYNdos'
+            ];
+            $stmtInitAI = $pdo->prepare("INSERT INTO ai_settings (agent_name, is_active, api_keys_json) VALUES (?, 1, ?)");
+            $stmtInitAI->execute(['Marina - Concierge Monte Alto', json_encode($defaultKeys)]);
+        }
+    } catch (Exception $e) {}
+
     seedInitialData($pdo);
     seedAttractionsAndGalleryIfEmpty($pdo);
 }
