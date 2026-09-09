@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { 
   Users, PawPrint, Calendar, MessageCircle, 
   Check, ArrowLeft, Video, Sparkles, MapPin, 
-  Clock, ShieldCheck, ChevronRight, Flame, Tag, FileText
+  Clock, ShieldCheck, ChevronLeft, ChevronRight, Flame, Tag, FileText,
+  Maximize2, X, SlidersHorizontal
 } from 'lucide-react';
 import YouTubeEmbed from '../../components/YouTubeEmbed';
 import BookingModal from '../../components/BookingModal';
@@ -20,6 +21,8 @@ export default function RoomDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activePhoto, setActivePhoto] = useState(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [fitMode, setFitMode] = useState('contain'); // 'contain' (foto inteira sem cortes) ou 'cover' (preencher)
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -35,12 +38,43 @@ export default function RoomDetailPage() {
       .then(res => {
         setRoom(res.data);
         if (res.data?.photos && res.data.photos.length > 0) {
-          setActivePhoto(res.data.photos[0].photo_url);
+          setActivePhoto(res.data.photos[0].photo_url || res.data.photos[0]);
         }
       })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  const photos = room?.photos || [];
+  const currentPhotoUrl = activePhoto || (photos[0]?.photo_url || photos[0]) || 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1400&q=80';
+  
+  const currentIndex = photos.findIndex(p => (p.photo_url || p) === currentPhotoUrl);
+
+  const handlePrevPhoto = (e) => {
+    if (e) e.stopPropagation();
+    if (!photos.length) return;
+    const prevIdx = (currentIndex - 1 + photos.length) % photos.length;
+    setActivePhoto(photos[prevIdx].photo_url || photos[prevIdx]);
+  };
+
+  const handleNextPhoto = (e) => {
+    if (e) e.stopPropagation();
+    if (!photos.length) return;
+    const nextIdx = (currentIndex + 1) % photos.length;
+    setActivePhoto(photos[nextIdx].photo_url || photos[nextIdx]);
+  };
+
+  // Keyboard controls for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!lightboxOpen) return;
+      if (e.key === 'Escape') setLightboxOpen(false);
+      if (e.key === 'ArrowLeft') handlePrevPhoto();
+      if (e.key === 'ArrowRight') handleNextPhoto();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen, currentIndex, photos]);
 
   if (loading) {
     return (
@@ -64,7 +98,6 @@ export default function RoomDetailPage() {
 
   const name = room[`name_${lang}`] || room.name_pt;
   const description = room[`description_${lang}`] || room.description_pt;
-  const photos = room.photos || [];
   const isPromo = room.is_promo !== undefined ? Number(room.is_promo) === 1 : true;
 
   let nights = 1;
@@ -72,7 +105,6 @@ export default function RoomDetailPage() {
     const diff = (new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24);
     nights = Math.max(1, Math.round(diff));
   }
-  const totalEstimated = nights * room.base_price;
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -84,7 +116,7 @@ export default function RoomDetailPage() {
   const directWhatsAppUrl = `https://wa.me/${pousadaWhatsApp}?text=${encodeURIComponent(waMsg)}`;
 
   return (
-    <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       
       <SEOHead
         title={`${name} - Pousada Monte Alto`}
@@ -110,63 +142,139 @@ export default function RoomDetailPage() {
         )}
       </div>
 
-      {/* Title & Badges Header (High Contrast White on Video Background) */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      {/* Title & Badges Header (High Contrast Glass Container with Crisp White Title) */}
+      <div className="bg-black/55 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-white/20 shadow-2xl flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs text-amber-400 font-bold uppercase tracking-wider mb-1.5 drop-shadow-md">
+          <div className="flex items-center gap-2 text-xs text-amber-400 font-bold uppercase tracking-wider mb-2 drop-shadow-sm">
             <span>{room.type === 'loft' ? 'Loft Família' : 'Suíte Exclusiva'}</span>
             <span>•</span>
-            <span className="text-stone-300">Pé na areia em Monte Alto</span>
+            <span className="text-stone-300">Pé na areia em Monte Alto - Arraial do Cabo</span>
           </div>
-          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] tracking-tight">
+          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] tracking-tight">
             {name}
           </h1>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           {room.accepts_pets == 1 ? (
-            <span className="bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-full shadow-lg flex items-center gap-1.5 border border-emerald-400/30">
+            <span className="bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-full shadow-lg flex items-center gap-1.5 border border-emerald-400/40">
               <PawPrint className="w-4 h-4 text-white" />
               <span>Pet Friendly 🐾</span>
             </span>
           ) : (
-            <span className="bg-stone-900/80 backdrop-blur-md text-stone-200 text-xs px-3.5 py-2 rounded-full border border-white/15 shadow-md">
+            <span className="bg-stone-900/90 backdrop-blur-md text-stone-200 text-xs px-3.5 py-2 rounded-full border border-white/20 shadow-md">
               Sem pets
             </span>
           )}
 
-          <span className="bg-stone-900/80 backdrop-blur-md text-white text-xs font-bold px-3.5 py-2 rounded-full border border-white/15 shadow-md flex items-center gap-1.5">
+          <span className="bg-stone-900/90 backdrop-blur-md text-white text-xs font-bold px-3.5 py-2 rounded-full border border-white/20 shadow-md flex items-center gap-1.5">
             <Users className="w-4 h-4 text-amber-400" />
             <span>Até {room.max_guests} hóspedes</span>
           </span>
         </div>
       </div>
 
-      {/* Photo Gallery Grid */}
-      <div className="space-y-3">
-        <div className="h-[420px] sm:h-[520px] rounded-3xl overflow-hidden bg-stone-900 border border-white/20 shadow-2xl relative">
+      {/* 📸 SMART FRAMING PHOTO VIEWER (ZERO CROPPING & AMBIENT BLURRED BACKDROP) 📸 */}
+      <div className="space-y-4">
+        <div 
+          className="relative w-full aspect-[16/10] sm:aspect-[16/9] max-h-[640px] rounded-3xl overflow-hidden bg-stone-950 border border-white/25 shadow-2xl flex items-center justify-center group select-none"
+        >
+          {/* Ambient blurred glow from the exact photo */}
           <img
-            src={activePhoto || photos[0]?.photo_url || 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1400&q=80'}
-            alt={name}
-            className="w-full h-full object-cover"
+            src={currentPhotoUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-110 pointer-events-none transition-all duration-700"
           />
+          <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+
+          {/* Main Photo (Clean, Uncropped, High-Def) */}
+          <img
+            src={currentPhotoUrl}
+            alt={name}
+            onClick={() => setLightboxOpen(true)}
+            className={`relative z-10 max-h-full max-w-full ${
+              fitMode === 'contain' ? 'object-contain' : 'object-cover w-full h-full'
+            } transition-all duration-300 shadow-2xl cursor-zoom-in group-hover:scale-[1.01]`}
+          />
+
+          {/* Previous / Next Arrows on Main Image */}
+          {photos.length > 1 && (
+            <>
+              <button
+                onClick={handlePrevPhoto}
+                className="absolute left-3 sm:left-5 z-20 p-3 rounded-full bg-black/65 hover:bg-amber-500 hover:text-stone-950 text-white backdrop-blur-md transition-all shadow-xl opacity-90 sm:opacity-0 group-hover:opacity-100 hover:scale-110"
+                title="Foto Anterior"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={handleNextPhoto}
+                className="absolute right-3 sm:right-5 z-20 p-3 rounded-full bg-black/65 hover:bg-amber-500 hover:text-stone-950 text-white backdrop-blur-md transition-all shadow-xl opacity-90 sm:opacity-0 group-hover:opacity-100 hover:scale-110"
+                title="Próxima Foto"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
+          )}
+
+          {/* Bottom Floating Control Bar */}
+          <div className="absolute bottom-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+            {/* Photo Counter */}
+            <span className="bg-black/75 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/15 shadow-lg pointer-events-auto">
+              📸 Foto {currentIndex >= 0 ? currentIndex + 1 : 1} de {photos.length || 1}
+            </span>
+
+            {/* Smart Crop Mode Toggle & Fullscreen Button */}
+            <div className="flex items-center gap-2 pointer-events-auto">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFitMode(prev => prev === 'contain' ? 'cover' : 'contain');
+                }}
+                className="bg-black/75 hover:bg-stone-800 text-white text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-md border border-white/15 shadow-lg transition-colors flex items-center gap-1.5"
+                title={fitMode === 'contain' ? 'Clique para preencher o quadro' : 'Clique para ver foto completa sem cortes'}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">
+                  {fitMode === 'contain' ? 'Ajuste Inteligente (Sem Cortes)' : 'Preencher Tela'}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setLightboxOpen(true)}
+                className="bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-bold px-3.5 py-1.5 rounded-full shadow-lg transition-all flex items-center gap-1.5 hover:scale-105"
+                title="Ver foto em tela cheia com zoom"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Tela Cheia</span>
+              </button>
+            </div>
+          </div>
         </div>
 
+        {/* Thumbnails Row */}
         {photos.length > 1 && (
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
             {photos.map((photo, idx) => {
               const pUrl = photo.photo_url || photo;
+              const isSelected = currentPhotoUrl === pUrl;
               return (
                 <button
                   key={photo.id || idx}
                   onClick={() => setActivePhoto(pUrl)}
-                  className={`h-20 sm:h-24 rounded-2xl overflow-hidden border-2 transition-all ${
-                    activePhoto === pUrl
-                      ? 'border-amber-500 scale-105 shadow-xl ring-2 ring-amber-400/50'
-                      : 'border-white/20 opacity-75 hover:opacity-100'
+                  className={`relative h-20 sm:h-24 aspect-[4/3] rounded-2xl overflow-hidden border-2 transition-all shrink-0 bg-stone-900 shadow-md ${
+                    isSelected
+                      ? 'border-amber-500 scale-105 shadow-xl ring-2 ring-amber-400/60'
+                      : 'border-white/20 opacity-70 hover:opacity-100'
                   }`}
                 >
                   <img src={pUrl} alt="" className="w-full h-full object-cover" />
+                  {isSelected && (
+                    <span className="absolute bottom-1 right-1 bg-amber-500 text-stone-950 text-[8px] font-black px-1.5 py-0.2 rounded">
+                      Ativa
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -348,6 +456,80 @@ export default function RoomDetailPage() {
         </div>
 
       </div>
+
+      {/* 🔍 FULLSCREEN LIGHTBOX MODAL WITH ZOOM & SLIDESHOW 🔍 */}
+      {lightboxOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-6"
+          onClick={() => setLightboxOpen(false)}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between text-white z-30 pb-2 border-b border-white/10" onClick={e => e.stopPropagation()}>
+            <div>
+              <span className="text-xs text-amber-400 font-bold uppercase tracking-wider block">Visualização Completa</span>
+              <h4 className="font-serif font-bold text-lg sm:text-xl text-white">{name}</h4>
+              <span className="text-xs text-stone-400">Foto {currentIndex >= 0 ? currentIndex + 1 : 1} de {photos.length}</span>
+            </div>
+            <button
+              onClick={() => setLightboxOpen(false)}
+              className="p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors"
+              title="Fechar (Esc)"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Photo Container */}
+          <div className="relative flex-1 flex items-center justify-center my-3 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <img
+              src={currentPhotoUrl}
+              alt={name}
+              className="max-h-[82vh] max-w-[95vw] object-contain rounded-2xl shadow-2xl"
+            />
+
+            {/* Nav Arrows */}
+            {photos.length > 1 && (
+              <>
+                <button
+                  onClick={handlePrevPhoto}
+                  className="absolute left-2 sm:left-6 p-4 rounded-full bg-black/70 hover:bg-amber-500 hover:text-stone-950 text-white transition-all shadow-2xl hover:scale-110"
+                  title="Foto Anterior (Seta Esquerda)"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button
+                  onClick={handleNextPhoto}
+                  className="absolute right-2 sm:right-6 p-4 rounded-full bg-black/70 hover:bg-amber-500 hover:text-stone-950 text-white transition-all shadow-2xl hover:scale-110"
+                  title="Próxima Foto (Seta Direita)"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Lightbox Thumbnails Strip */}
+          {photos.length > 1 && (
+            <div className="flex items-center justify-center gap-2 overflow-x-auto py-2 z-30" onClick={e => e.stopPropagation()}>
+              {photos.map((photo, idx) => {
+                const pUrl = photo.photo_url || photo;
+                const isSelected = currentPhotoUrl === pUrl;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setActivePhoto(pUrl)}
+                    className={`h-14 sm:h-16 aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all shrink-0 bg-stone-900 ${
+                      isSelected ? 'border-amber-500 scale-105 ring-2 ring-amber-400/60' : 'border-white/20 opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={pUrl} alt="" className="w-full h-full object-cover" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Booking Form Modal */}
       {isBookingOpen && (
