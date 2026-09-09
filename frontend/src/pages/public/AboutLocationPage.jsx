@@ -15,8 +15,10 @@ export default function AboutLocationPage() {
 
   const [attractions, setAttractions] = useState([]);
   const [loadingAttractions, setLoadingAttractions] = useState(true);
+  const [settings, setSettings] = useState({});
 
   useEffect(() => {
+    // Load attractions
     api.getAttractions()
       .then(res => {
         if (res.data && res.data.length > 0) {
@@ -25,7 +27,36 @@ export default function AboutLocationPage() {
       })
       .catch(err => console.error(err))
       .finally(() => setLoadingAttractions(false));
+
+    // Load site settings (About & Location CMS fields)
+    api.getSettings()
+      .then(res => {
+        if (res.data) {
+          setSettings(res.data);
+        }
+      })
+      .catch(err => console.error(err));
   }, []);
+
+  // Dynamic values with i18n and fallback
+  const aboutBadge = settings[`about_badge_${lang}`] || settings.about_badge_pt || t('about.badge', { defaultValue: 'Nossa História & Localização' });
+  const aboutTitle = settings[`about_title_${lang}`] || settings.about_title_pt || t('about.title', { defaultValue: 'Quem Somos & Localização' });
+  const aboutSubtitle = settings[`about_subtitle_${lang}`] || settings.about_subtitle_pt || t('about.subtitle', { defaultValue: 'Conheça a Pousada Monte Alto e os encantos do Caribe Brasileiro' });
+
+  const storyBadge = settings[`about_story_badge_${lang}`] || settings.about_story_badge_pt || 'Hospitalidade Acolhedora';
+  const storyTitle = settings[`about_story_title_${lang}`] || settings.about_story_title_pt || t('about.ourStoryTitle', { defaultValue: 'Nossa História e Proposta' });
+  const story1 = settings[`about_story1_${lang}`] || settings.about_story1_pt || t('about.story1', { defaultValue: 'A Pousada Monte Alto nasceu do sonho de oferecer uma hospedagem acolhedora, com atendimento familiar e perto da natureza, em um dos pontos mais privilegiados da Região dos Lagos.' });
+  const story2 = settings[`about_story2_${lang}`] || settings.about_story2_pt || t('about.story2', { defaultValue: 'Situada no charmoso distrito de Monte Alto, na Restinga de Massambaba, nossa localização é um verdadeiro refúgio: pé na areia para o mar e a apenas 3 minutos do pôr do sol na Lagoa de Araruama.' });
+
+  const benefit1 = settings[`about_benefit1_${lang}`] || settings.about_benefit1_pt || 'Pé na areia para o oceano';
+  const benefit2 = settings[`about_benefit2_${lang}`] || settings.about_benefit2_pt || 'Pôr do sol na Lagoa a 3 min';
+
+  const imageUrl = settings.about_image_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80';
+  const imageCaption = settings[`about_image_caption_${lang}`] || settings.about_image_caption_pt || '📍 Praia de Monte Alto • Arraial do Cabo - RJ';
+
+  const guideBadge = settings[`guide_badge_${lang}`] || settings.guide_badge_pt || t('about.guideBadge', { defaultValue: 'Distâncias & Roteiros' });
+  const guideTitle = settings[`guide_title_${lang}`] || settings.guide_title_pt || t('about.guideTitle', { defaultValue: 'Guia de Distâncias & Praias' });
+  const guideSub = settings[`guide_sub_${lang}`] || settings.guide_sub_pt || t('about.guideSub', { defaultValue: 'Descubra as praias mais deslumbrantes da Região dos Lagos com tempos de deslocamento e rotas GPS a partir da Pousada Monte Alto.' });
 
   return (
     <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
@@ -38,13 +69,13 @@ export default function AboutLocationPage() {
       {/* Header Section */}
       <div className="text-center space-y-3 max-w-3xl mx-auto">
         <span className="text-xs font-bold text-amber-400 uppercase tracking-widest block drop-shadow-sm">
-          {t('about.badge', { defaultValue: 'Nossa História & Localização' })}
+          {aboutBadge}
         </span>
         <h1 className="font-serif text-3xl sm:text-5xl font-bold text-white drop-shadow-2xl">
-          {t('about.title', { defaultValue: 'Quem Somos & Localização' })}
+          {aboutTitle}
         </h1>
         <p className="text-stone-200 text-sm sm:text-base leading-relaxed drop-shadow-md">
-          {t('about.subtitle', { defaultValue: 'Conheça a Pousada Monte Alto e os encantos do Caribe Brasileiro' })}
+          {aboutSubtitle}
         </p>
       </div>
 
@@ -53,61 +84,61 @@ export default function AboutLocationPage() {
         <div className="space-y-6">
           <div className="space-y-2">
             <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">
-              Hospitalidade Acolhedora
+              {storyBadge}
             </span>
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
-              {t('about.ourStoryTitle', { defaultValue: 'Nossa História e Proposta' })}
+              {storyTitle}
             </h2>
           </div>
 
           <p className="text-stone-700 leading-relaxed text-sm sm:text-base font-light">
-            {t('about.story1', { defaultValue: 'A Pousada Monte Alto nasceu do sonho de oferecer uma hospedagem acolhedora, com atendimento familiar e perto da natureza, em um dos pontos mais privilegiados da Região dos Lagos.' })}
+            {story1}
           </p>
 
           <p className="text-stone-700 leading-relaxed text-sm sm:text-base font-light">
-            {t('about.story2', { defaultValue: 'Situada no charmoso distrito de Monte Alto, na Restinga de Massambaba, nossa localização é um verdadeiro refúgio: pé na areia para o mar e a apenas 3 minutos do pôr do sol na Lagoa de Araruama.' })}
+            {story2}
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <div className="flex items-center gap-3 bg-amber-50/80 p-3 rounded-2xl border border-amber-200">
               <Waves className="w-5 h-5 text-amber-600 shrink-0" />
-              <span className="text-xs font-bold text-stone-800">Pé na areia para o oceano</span>
+              <span className="text-xs font-bold text-stone-800">{benefit1}</span>
             </div>
             <div className="flex items-center gap-3 bg-amber-50/80 p-3 rounded-2xl border border-amber-200">
               <Sun className="w-5 h-5 text-amber-600 shrink-0" />
-              <span className="text-xs font-bold text-stone-800">Pôr do sol na Lagoa a 3 min</span>
+              <span className="text-xs font-bold text-stone-800">{benefit2}</span>
             </div>
           </div>
         </div>
 
         <div className="relative h-80 sm:h-96 rounded-3xl overflow-hidden shadow-2xl border border-stone-200">
           <img
-            src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80"
+            src={imageUrl}
             alt="Praia de Monte Alto em Arraial do Cabo"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-6">
             <span className="text-white text-xs font-medium backdrop-blur-md bg-black/40 px-3 py-1.5 rounded-full border border-white/20">
-              📍 Praia de Monte Alto • Arraial do Cabo - RJ
+              {imageCaption}
             </span>
           </div>
         </div>
       </div>
 
       {/* 🧭 LOCATION AND HIGH-EMPHASIS GPS ROUTE SECTION */}
-      <LocationMapSection />
+      <LocationMapSection settings={settings} />
 
       {/* 🏖️ DYNAMIC BEACHES & DISTANCE GUIDE (CMS POWERED) */}
       <div className="space-y-10">
         <div className="text-center space-y-2">
           <span className="text-xs font-bold text-amber-400 uppercase tracking-widest block drop-shadow-sm">
-            {t('about.guideBadge', { defaultValue: 'Distâncias & Roteiros' })}
+            {guideBadge}
           </span>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white drop-shadow-lg">
-            {t('about.guideTitle', { defaultValue: 'Guia de Distâncias & Praias' })}
+            {guideTitle}
           </h2>
           <p className="text-stone-200 text-sm max-w-2xl mx-auto drop-shadow-md">
-            {t('about.guideSub', { defaultValue: 'Descubra as praias mais deslumbrantes da Região dos Lagos com tempos de deslocamento e rotas GPS a partir da Pousada Monte Alto.' })}
+            {guideSub}
           </p>
         </div>
 

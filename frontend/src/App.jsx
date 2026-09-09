@@ -21,6 +21,7 @@ import AdminLayout from './components/admin/AdminLayout';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminRoomsPage from './pages/admin/AdminRoomsPage';
+import AdminAboutPage from './pages/admin/AdminAboutPage';
 import AdminGalleryPage from './pages/admin/AdminGalleryPage';
 import AdminAttractionsPage from './pages/admin/AdminAttractionsPage';
 import AdminReservationsPage from './pages/admin/AdminReservationsPage';
@@ -96,6 +97,7 @@ export default function App() {
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="acomodacoes" element={<AdminRoomsPage />} />
+            <Route path="sobre" element={<AdminAboutPage />} />
             <Route path="galeria" element={<AdminGalleryPage />} />
             <Route path="praias" element={<AdminAttractionsPage />} />
             <Route path="reservas" element={<AdminReservationsPage />} />

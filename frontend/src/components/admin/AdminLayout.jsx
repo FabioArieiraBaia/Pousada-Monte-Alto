@@ -30,6 +30,7 @@ export default function AdminLayout() {
   const navItems = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/admin/acomodacoes', label: 'Suítes & Lofts', icon: BedDouble },
+    { to: '/admin/sobre', label: 'Quem Somos & Local', icon: Compass },
     { to: '/admin/galeria', label: 'Galeria de Fotos', icon: ImageIcon },
     { to: '/admin/praias', label: 'Guia de Praias', icon: Compass },
     { to: '/admin/reservas', label: 'Reservas & Calendário', icon: Calendar },

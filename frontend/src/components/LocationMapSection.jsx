@@ -5,14 +5,24 @@ import {
   Car, Plane, CheckCircle2, Copy, Sparkles, Map, ShieldCheck
 } from 'lucide-react';
 
-export default function LocationMapSection({ className = "" }) {
-  const { t } = useTranslation();
+export default function LocationMapSection({ className = "", settings = {} }) {
+  const { t, i18n } = useTranslation();
+  const lang = (i18n.language || 'pt').substring(0, 2);
   const [copied, setCopied] = useState(false);
 
-  // Exact location details
-  const address = "Travessa Américo Reis, Monte Alto, Arraial do Cabo - RJ, CEP 28930-000";
-  const coordinates = "-22.9288,-42.0615";
-  const placeName = "Pousada Monte Alto - Arraial do Cabo";
+  // Exact location details (Dynamic from CMS with fallback)
+  const address = settings.loc_address || settings.address || "Travessa Américo Reis, Monte Alto, Arraial do Cabo - RJ, CEP 28930-000";
+  const placeName = settings.pousada_name || "Pousada Monte Alto - Arraial do Cabo";
+  const mapEmbedUrl = settings.loc_map_embed_url || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14704.281898716805!2d-42.07221295!3d-22.92955895!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9717cb49b4b02d%3A0xb3638dbf03b53c15!2sMonte%20Alto%2C%20Arraial%20do%20Cabo%20-%20RJ!5e0!3m2!1spt-BR!2sbr!4v1700000000000!5m2!1spt-BR!2sbr";
+
+  // Dynamic texts with language resolution
+  const badgeText = settings[`loc_badge_${lang}`] || settings.loc_badge_pt || "Fácil Acesso & GPS";
+  const titleText = settings[`loc_title_${lang}`] || settings.loc_title_pt || "Como Chegar na Pousada Monte Alto";
+  const subtitleText = settings[`loc_subtitle_${lang}`] || settings.loc_subtitle_pt || "Localização privilegiada pé na areia em Monte Alto, com acesso direto pela RJ-102 sem enfrentar os engarrafamentos do centro de Arraial do Cabo.";
+
+  const dirCarText = settings[`loc_directions_car_${lang}`] || settings.loc_directions_car_pt || "Pela Ponte Rio-Niterói e Via Lagos (RJ-124), siga pela RJ-102 direto para Monte Alto. Não precisa enfrentar o trânsito do centro de Arraial ou Cabo Frio.";
+  const dirAirportText = settings[`loc_directions_airport_${lang}`] || settings.loc_directions_airport_pt || "A apenas 10 minutos de carro (8 km) do Aeroporto Internacional de Cabo Frio (CFB) pela rodovia RJ-102.";
+  const dirRefText = settings[`loc_directions_ref_${lang}`] || settings.loc_directions_ref_pt || "Localizada no Distrito de Monte Alto, a poucos passos da faixa de areia do mar e a 3 minutos da orla da Lagoa de Araruama.";
 
   // Navigation Links with Direct GPS Routing
   const googleMapsRouteUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(placeName + ', ' + address)}`;
@@ -31,13 +41,13 @@ export default function LocationMapSection({ className = "" }) {
       {/* Section Header */}
       <div className="text-center space-y-3 max-w-3xl mx-auto">
         <span className="text-xs font-bold text-amber-400 uppercase tracking-widest block drop-shadow-sm">
-          Fácil Acesso & GPS
+          {badgeText}
         </span>
         <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-white drop-shadow-2xl">
-          Como Chegar na Pousada Monte Alto
+          {titleText}
         </h2>
         <p className="text-stone-200 text-sm sm:text-base leading-relaxed drop-shadow-md">
-          Localização privilegiada pé na areia em Monte Alto, com acesso direto pela RJ-102 sem enfrentar os engarrafamentos do centro de Arraial do Cabo.
+          {subtitleText}
         </p>
       </div>
 
@@ -55,7 +65,7 @@ export default function LocationMapSection({ className = "" }) {
                 <span>Localização Exata da Pousada</span>
               </div>
               <h3 className="font-serif text-2xl sm:text-3xl font-bold text-white">
-                Pousada Monte Alto
+                {placeName}
               </h3>
               <p className="text-stone-300 text-xs sm:text-sm max-w-xl font-light">
                 {address}
@@ -65,7 +75,7 @@ export default function LocationMapSection({ className = "" }) {
             {/* Quick Copy Address Button */}
             <button
               onClick={handleCopyAddress}
-              className="inline-flex items-center gap-2 bg-stone-800/90 hover:bg-stone-700 text-stone-200 hover:text-white text-xs font-semibold px-4 py-2.5 rounded-2xl border border-white/20 transition-all shrink-0 self-start md:self-auto"
+              className="inline-flex items-center gap-2 bg-stone-800/90 hover:bg-stone-700 text-stone-200 hover:text-white text-xs font-semibold px-4 py-2.5 rounded-2xl border border-white/20 transition-all shrink-0 self-start md:self-auto cursor-pointer"
             >
               {copied ? (
                 <>
@@ -130,7 +140,7 @@ export default function LocationMapSection({ className = "" }) {
         <div className="relative h-96 sm:h-[480px] w-full bg-stone-100">
           <iframe
             title="Localização da Pousada Monte Alto em Arraial do Cabo"
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14704.281898716805!2d-42.07221295!3d-22.92955895!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9717cb49b4b02d%3A0xb3638dbf03b53c15!2sMonte%20Alto%2C%20Arraial%20do%20Cabo%20-%20RJ!5e0!3m2!1spt-BR!2sbr!4v1700000000000!5m2!1spt-BR!2sbr"
+            src={mapEmbedUrl}
             width="100%"
             height="100%"
             style={{ border: 0 }}
@@ -144,7 +154,7 @@ export default function LocationMapSection({ className = "" }) {
           <div className="absolute top-4 left-4 bg-stone-900/90 backdrop-blur-md text-white px-4 py-2.5 rounded-2xl border border-white/20 shadow-xl flex items-center gap-2.5 pointer-events-none">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
             <div>
-              <strong className="block text-xs font-serif text-amber-400">Pousada Monte Alto</strong>
+              <strong className="block text-xs font-serif text-amber-400">{placeName}</strong>
               <span className="text-[10px] text-stone-300">Entre a Praia de Monte Alto e a Lagoa</span>
             </div>
           </div>
@@ -159,7 +169,7 @@ export default function LocationMapSection({ className = "" }) {
               <h4>De Carro (Vindo do Rio / RJ)</h4>
             </div>
             <p className="text-xs text-stone-600 leading-relaxed font-light">
-              Pela Ponte Rio-Niterói e Via Lagos (RJ-124), siga pela RJ-102 direto para Monte Alto. Não precisa enfrentar o trânsito do centro de Arraial ou Cabo Frio.
+              {dirCarText}
             </p>
           </div>
 
@@ -169,7 +179,7 @@ export default function LocationMapSection({ className = "" }) {
               <h4>Do Aeroporto de Cabo Frio</h4>
             </div>
             <p className="text-xs text-stone-600 leading-relaxed font-light">
-              A apenas <strong>10 minutos de carro (8 km)</strong> do Aeroporto Internacional de Cabo Frio (CFB) pela rodovia RJ-102.
+              {dirAirportText}
             </p>
           </div>
 
@@ -179,7 +189,7 @@ export default function LocationMapSection({ className = "" }) {
               <h4>Ponto de Referência</h4>
             </div>
             <p className="text-xs text-stone-600 leading-relaxed font-light">
-              Localizada no Distrito de Monte Alto, a poucos passos da faixa de areia do mar e a 3 minutos da orla da Lagoa de Araruama.
+              {dirRefText}
             </p>
           </div>
 
