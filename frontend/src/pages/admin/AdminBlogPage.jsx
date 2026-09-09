@@ -15,6 +15,8 @@ export default function AdminBlogPage() {
   const [editingPost, setEditingPost] = useState(null);
   const [activeTab, setActiveTab] = useState('editor'); // 'editor' | 'preview'
   const [activeLang, setActiveLang] = useState('pt'); // 'pt' | 'en' | 'es'
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'published' | 'draft' | 'unlisted'
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Upload states
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -274,14 +276,86 @@ export default function AdminBlogPage() {
         </button>
       </div>
 
+      {/* Filter Tabs & Search Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          <button
+            onClick={() => setFilterStatus('all')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+              filterStatus === 'all'
+                ? 'bg-stone-900 text-white shadow-sm'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            Todos ({posts.length})
+          </button>
+          <button
+            onClick={() => setFilterStatus('published')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+              filterStatus === 'published'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            🟢 Publicados ({posts.filter(p => p.is_published === 1).length})
+          </button>
+          <button
+            onClick={() => setFilterStatus('draft')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+              filterStatus === 'draft'
+                ? 'bg-amber-500 text-stone-950 font-black shadow-sm'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            🟡 Rascunhos ({posts.filter(p => p.is_published === 0).length})
+          </button>
+          <button
+            onClick={() => setFilterStatus('unlisted')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+              filterStatus === 'unlisted'
+                ? 'bg-sky-600 text-white shadow-sm'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            🔵 Não Listados ({posts.filter(p => p.is_published === 2).length})
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="w-full sm:w-72">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar matéria por título ou tag..."
+            className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-amber-500"
+          />
+        </div>
+      </div>
+
       {/* Posts List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
           [1, 2, 3].map(n => (
             <div key={n} className="h-80 bg-stone-200/60 rounded-3xl animate-pulse" />
           ))
-        ) : posts.length > 0 ? (
-          posts.map((post) => {
+        ) : (() => {
+          const filteredPosts = posts.filter(p => {
+            if (filterStatus === 'published' && p.is_published !== 1) return false;
+            if (filterStatus === 'draft' && p.is_published !== 0) return false;
+            if (filterStatus === 'unlisted' && p.is_published !== 2) return false;
+            if (searchQuery.trim()) {
+              const q = searchQuery.toLowerCase();
+              const matchTitle = (p.title_pt || '').toLowerCase().includes(q);
+              const matchTags = (p.tags || '').toLowerCase().includes(q);
+              const matchExcerpt = (p.excerpt_pt || '').toLowerCase().includes(q);
+              return matchTitle || matchTags || matchExcerpt;
+            }
+            return true;
+          });
+
+          return filteredPosts.length > 0 ? (
+            filteredPosts.map((post) => {
             let galCount = 0;
             if (Array.isArray(post.gallery_photos)) galCount = post.gallery_photos.length;
             else if (typeof post.gallery_photos === 'string' && post.gallery_photos.trim()) {
@@ -301,6 +375,21 @@ export default function AdminBlogPage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                      {post.is_published === 1 && (
+                        <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md">
+                          🟢 Publicado
+                        </span>
+                      )}
+                      {post.is_published === 0 && (
+                        <span className="bg-amber-500/95 backdrop-blur-md text-stone-950 text-[10px] font-black px-2.5 py-1 rounded-full shadow-md">
+                          🟡 Rascunho
+                        </span>
+                      )}
+                      {post.is_published === 2 && (
+                        <span className="bg-sky-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md">
+                          🔵 Não Listado
+                        </span>
+                      )}
                       {post.youtube_video_url && (
                         <span className="bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md">
                           <Video className="w-3 h-3" /> Vídeo
@@ -354,13 +443,14 @@ export default function AdminBlogPage() {
           <div className="col-span-full text-center py-16 bg-white rounded-3xl border border-stone-200/80 space-y-3">
             <BookOpen className="w-12 h-12 text-stone-400 mx-auto" />
             <h3 className="font-serif text-lg font-bold text-stone-800">
-              Nenhuma matéria cadastrada
+              Nenhuma matéria encontrada
             </h3>
             <p className="text-stone-500 text-xs">
-              Clique no botão acima para criar seu primeiro artigo com fotos e vídeos.
+              Tente alterar os filtros de status ou a busca acima, ou crie uma nova matéria.
             </p>
           </div>
-        )}
+        );
+      })()}
       </div>
 
       {/* 🚀 MODAL DE EDIÇÃO TOTAL DO ARTIGO COM FOTOS ILIMITADAS & FORMATADOR VISUAL 🚀 */}
@@ -843,6 +933,65 @@ export default function AdminBlogPage() {
                   placeholder="praias, arraial do cabo, turismo, pousada monte alto"
                   className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none"
                 />
+              </div>
+
+              {/* Status de Publicação: Publicado, Rascunho, Não Listado */}
+              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2">
+                <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider">
+                  Status de Visibilidade da Matéria
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    form.is_published === 1 ? 'bg-emerald-50 border-emerald-400 text-emerald-900 font-bold shadow-sm' : 'bg-white border-stone-200 text-stone-600'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="is_published"
+                      value={1}
+                      checked={form.is_published === 1}
+                      onChange={() => setForm({ ...form, is_published: 1 })}
+                      className="text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div>
+                      <div className="text-xs">🟢 Publicado</div>
+                      <div className="text-[10px] text-stone-500 font-normal">Visível no blog e motores de busca</div>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    form.is_published === 0 ? 'bg-amber-50 border-amber-400 text-amber-900 font-bold shadow-sm' : 'bg-white border-stone-200 text-stone-600'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="is_published"
+                      value={0}
+                      checked={form.is_published === 0}
+                      onChange={() => setForm({ ...form, is_published: 0 })}
+                      className="text-amber-600 focus:ring-amber-500"
+                    />
+                    <div>
+                      <div className="text-xs">🟡 Rascunho</div>
+                      <div className="text-[10px] text-stone-500 font-normal">Oculto de visitantes (apenas admin)</div>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    form.is_published === 2 ? 'bg-sky-50 border-sky-400 text-sky-900 font-bold shadow-sm' : 'bg-white border-stone-200 text-stone-600'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="is_published"
+                      value={2}
+                      checked={form.is_published === 2}
+                      onChange={() => setForm({ ...form, is_published: 2 })}
+                      className="text-sky-600 focus:ring-sky-500"
+                    />
+                    <div>
+                      <div className="text-xs">🔵 Não Listado</div>
+                      <div className="text-[10px] text-stone-500 font-normal">Acessível só por link direto</div>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               {/* Modal Bottom Actions */}
