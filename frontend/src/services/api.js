@@ -176,5 +176,21 @@ export const api = {
       throw new Error(data.error || 'Erro ao enviar imagem');
     }
     return data;
-  }
+  },
+
+  // AI Concierge Chat & Leads
+  sendMessageToAI: (messages, leadContext) => request('/chat', {
+    method: 'POST',
+    body: JSON.stringify({ messages, lead: leadContext })
+  }),
+  getLeads: () => request('/leads'),
+  updateLeadStatus: (id, status, notes) => request(`/leads/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status, notes })
+  }),
+  getAISettings: () => request('/ai-settings'),
+  updateAISettings: (data) => request('/ai-settings', {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  })
 };

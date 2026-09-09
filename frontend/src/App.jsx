@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Outlet, useLocation, Navigate }
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import WhatsAppFloating from './components/WhatsAppFloating';
+import AIChatWidget from './components/AIChatWidget';
 import InteractiveVideoBackground from './components/InteractiveVideoBackground';
 
 // Public Pages
@@ -20,6 +21,7 @@ import BeachDetailPage from './pages/public/BeachDetailPage';
 import AdminLayout from './components/admin/AdminLayout';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminAIChatPage from './pages/admin/AdminAIChatPage';
 import AdminRoomsPage from './pages/admin/AdminRoomsPage';
 import AdminAboutPage from './pages/admin/AdminAboutPage';
 import AdminGalleryPage from './pages/admin/AdminGalleryPage';
@@ -59,6 +61,7 @@ function PublicLayout() {
       </main>
       <Footer />
       <WhatsAppFloating />
+      <AIChatWidget />
     </div>
   );
 }
@@ -96,6 +99,7 @@ export default function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="ia" element={<AdminAIChatPage />} />
             <Route path="acomodacoes" element={<AdminRoomsPage />} />
             <Route path="sobre" element={<AdminAboutPage />} />
             <Route path="galeria" element={<AdminGalleryPage />} />
