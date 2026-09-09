@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   Users, PawPrint, Tv, Wind, Wifi, Coffee, 
@@ -8,6 +8,7 @@ import {
 
 export default function RoomCard({ room, onOpenBooking }) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const lang = (i18n.language || 'pt').substring(0, 2);
 
   // Dynamic names & descriptions based on language
@@ -27,8 +28,15 @@ export default function RoomCard({ room, onOpenBooking }) {
   const waMsg = `Olá! Gostaria de consultar o valor promocional e disponibilidade para a *${name}* na Pousada Monte Alto.`;
   const directWhatsAppUrl = `https://wa.me/${pousadaWhatsApp}?text=${encodeURIComponent(waMsg)}`;
 
+  const handleCardClick = () => {
+    navigate(`/acomodacoes/${room.slug}`);
+  };
+
   return (
-    <div className="bg-white/95 backdrop-blur-xl rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl border border-white/50 transition-all duration-300 flex flex-col justify-between group">
+    <div 
+      onClick={handleCardClick}
+      className="bg-white/95 backdrop-blur-xl rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl border border-white/50 transition-all duration-300 flex flex-col justify-between group cursor-pointer hover:-translate-y-1"
+    >
       <div>
         {/* Cover Image Container */}
         <div className="relative h-64 sm:h-72 overflow-hidden bg-stone-100">
@@ -149,20 +157,20 @@ export default function RoomCard({ room, onOpenBooking }) {
             )}
           </div>
 
-          <Link
-            to={`/acomodacoes/${room.slug}`}
-            className="text-stone-700 hover:text-stone-900 text-xs font-bold py-2 px-3 rounded-xl hover:bg-stone-100 flex items-center gap-1 transition-colors"
-          >
+          <span className="text-stone-700 group-hover:text-amber-600 text-xs font-bold py-2 px-3 rounded-xl group-hover:bg-amber-50 flex items-center gap-1 transition-colors">
             <span>{t('room.details')}</span>
             <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
+          </span>
         </div>
 
         {/* Dual Booking Buttons: Form / WhatsApp */}
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => onOpenBooking && onOpenBooking(room)}
-            className="w-full bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs py-2.5 px-2 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 hover:scale-[1.02]"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenBooking && onOpenBooking(room);
+            }}
+            className="w-full bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs py-2.5 px-2 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
           >
             <span>{isPromo ? 'Consultar / Reservar' : t('room.bookNow')}</span>
           </button>
@@ -171,7 +179,8 @@ export default function RoomCard({ room, onOpenBooking }) {
             href={directWhatsAppUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-2 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 hover:scale-[1.02]"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-2 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
           >
             <MessageCircle className="w-3.5 h-3.5" />
             <span>Via WhatsApp</span>
