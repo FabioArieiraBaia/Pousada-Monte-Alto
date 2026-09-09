@@ -69,7 +69,7 @@ export default function BlogPostPage() {
   };
 
   return (
-    <div className="pt-28 pb-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="pt-28 pb-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       
       {/* Dynamic SEO Head with BlogPosting Schema */}
       <SEOHead
@@ -80,40 +80,43 @@ export default function BlogPostPage() {
         schemaJson={blogSchema}
       />
 
+      {/* Back to Blog Button */}
       <div>
         <Link
           to="/blog"
-          className="inline-flex items-center gap-2 text-xs font-bold text-stone-500 hover:text-stone-900 transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-bold text-stone-900 hover:text-amber-600 transition-colors bg-white/95 backdrop-blur-md px-4 py-2 rounded-full border border-white/40 shadow-md hover:shadow-lg"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>{t('blog.backToBlog')}</span>
         </Link>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center gap-3 text-xs text-stone-500">
-          <span className="flex items-center gap-1 font-medium">
-            <Calendar className="w-3.5 h-3.5 text-amber-600" />
+      {/* Article Header (High-contrast glass card with crisp white title and black shadow) */}
+      <div className="bg-black/60 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-white/20 shadow-2xl space-y-4">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-stone-300">
+          <span className="flex items-center gap-1 font-bold text-amber-400 drop-shadow-sm">
+            <Calendar className="w-4 h-4" />
             {new Date(post.published_at).toLocaleDateString('pt-BR')}
           </span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-amber-600" />
+          <span className="text-white/40">•</span>
+          <span className="flex items-center gap-1 text-stone-300 drop-shadow-sm">
+            <Clock className="w-4 h-4 text-amber-400" />
             {t('blog.readTime')}
           </span>
         </div>
 
-        <h1 className="font-serif text-3xl sm:text-5xl font-bold text-stone-900 leading-tight">
+        <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-white leading-tight drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)] tracking-tight">
           {title}
         </h1>
       </div>
 
+      {/* Featured Image */}
       {post.featured_image && (
-        <div className="h-72 sm:h-96 rounded-3xl overflow-hidden shadow-lg bg-stone-100">
+        <div className="relative h-72 sm:h-96 md:h-[420px] rounded-3xl overflow-hidden shadow-2xl bg-stone-950 border border-white/20 group">
           <img
             src={post.featured_image}
             alt={title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             width="1200"
             height="800"
             decoding="async"
@@ -121,44 +124,50 @@ export default function BlogPostPage() {
         </div>
       )}
 
+      {/* Embedded YouTube Video if present */}
       {post.youtube_video_url && (
         <div className="space-y-3 pt-2">
           <YouTubeEmbed url={post.youtube_video_url} title={`Vídeo do Artigo: ${title}`} />
         </div>
       )}
 
-      <div
-        className="prose prose-stone max-w-none text-stone-800 text-sm sm:text-base leading-relaxed space-y-4 pt-4"
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
+      {/* Article Content Container with White Text & Black Shadows */}
+      <article className="bg-black/55 backdrop-blur-xl p-6 sm:p-10 rounded-3xl border border-white/20 shadow-2xl space-y-6">
+        <div
+          className="blog-content text-white text-base sm:text-lg leading-relaxed space-y-4 font-normal"
+          dangerouslySetInnerHTML={{ __html: content }}
+        />
 
-      {post.tags && (
-        <div className="pt-6 border-t border-stone-200 flex flex-wrap items-center gap-2">
-          <Tag className="w-4 h-4 text-amber-600" />
-          {post.tags.split(',').map((tag, idx) => (
-            <span
-              key={idx}
-              className="text-xs bg-sand-100 text-stone-700 px-3 py-1 rounded-full border border-sand-200 font-medium"
-            >
-              #{tag.trim()}
-            </span>
-          ))}
-        </div>
-      )}
+        {/* Tags */}
+        {post.tags && (
+          <div className="pt-6 border-t border-white/15 flex flex-wrap items-center gap-2">
+            <Tag className="w-4 h-4 text-amber-400" />
+            {post.tags.split(',').map((tag, idx) => (
+              <span
+                key={idx}
+                className="text-xs bg-white/15 backdrop-blur-md text-white font-bold px-3.5 py-1.5 rounded-full border border-white/25 shadow-sm"
+              >
+                #{tag.trim()}
+              </span>
+            ))}
+          </div>
+        )}
+      </article>
 
-      <div className="bg-sand-100/80 p-8 rounded-3xl border border-sand-200 text-center space-y-3">
-        <h3 className="font-serif text-2xl font-bold text-stone-900">
+      {/* Call to Action Card */}
+      <div className="bg-stone-950/80 backdrop-blur-xl p-8 sm:p-10 rounded-3xl border border-amber-400/40 text-center space-y-4 shadow-2xl">
+        <h3 className="font-serif text-2xl sm:text-3xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
           Gostou das dicas de Arraial do Cabo?
         </h3>
-        <p className="text-stone-600 text-xs sm:text-sm max-w-md mx-auto">
-          Hospede-se na Pousada Monte Alto e aproveite cada uma dessas atrações com total conforto e tranquilidade.
+        <p className="text-stone-300 text-sm sm:text-base max-w-lg mx-auto leading-relaxed drop-shadow-sm">
+          Hospede-se na Pousada Monte Alto e aproveite cada uma dessas atrações com total conforto, hospitalidade e pé na areia.
         </p>
         <div className="pt-2">
           <Link
             to="/acomodacoes"
-            className="inline-flex bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold px-6 py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md"
+            className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-stone-950 font-black px-8 py-4 rounded-2xl text-xs uppercase tracking-wider shadow-2xl hover:scale-105 transition-all"
           >
-            Ver Nossas Suítes & Lofts
+            <span>Ver Nossas Suítes & Lofts</span>
           </Link>
         </div>
       </div>

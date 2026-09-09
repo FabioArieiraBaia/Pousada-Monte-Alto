@@ -14,3 +14,76 @@
 .font-display {
   font-family: 'Playfair Display', Georgia, serif;
 }
+
+/* 📝 Estilos de Alto Contraste para o Conteúdo do Blog */
+.blog-content {
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95), 0 0 12px rgba(0, 0, 0, 0.85);
+}
+
+.blog-content h1,
+.blog-content h2,
+.blog-content h3,
+.blog-content h4,
+.blog-content h5,
+.blog-content h6 {
+  color: #ffffff;
+  font-weight: 800;
+  margin-top: 1.75rem;
+  margin-bottom: 0.75rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 4px 16px rgba(0, 0, 0, 0.9);
+}
+
+.blog-content h2,
+.blog-content h3 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+
+.blog-content p {
+  margin-bottom: 1.25rem;
+  line-height: 1.8;
+  color: #ffffff;
+}
+
+.blog-content strong,
+.blog-content b {
+  color: #fef08a; /* amber-200 / yellow-100 para ênfase dourada legível */
+  font-weight: 700;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95);
+}
+
+.blog-content ul,
+.blog-content ol {
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+  color: #ffffff;
+}
+
+.blog-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+}
+
+.blog-content a {
+  color: #fbbf24; /* amber-400 */
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.blog-content a:hover {
+  color: #f59e0b;
+}
+
+.blog-content blockquote {
+  border-left: 4px solid #f59e0b;
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: #f3f4f6;
+  background: rgba(0, 0, 0, 0.4);
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-radius: 0 1rem 1rem 0;
+}
