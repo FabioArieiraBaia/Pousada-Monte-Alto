@@ -157,10 +157,7 @@ export default function BlogPostPage() {
 
         {/* Quick Floating Share Buttons */}
         <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-md">
-          <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider hidden sm:inline flex items-center gap-1">
-            <Share2 className="w-3.5 h-3.5" />
-            {t('blog.sharePost')}:
-          </span>
+          <Share2 className="w-3.5 h-3.5 text-amber-400 shrink-0" title={t('blog.sharePost')} />
           <a
             href={shareLinks.whatsapp}
             target="_blank"
