@@ -6,7 +6,8 @@ class ReservationsController {
     public static function getAll($pdo) {
         requireAuth($pdo);
         
-        $sql = "SELECT r.*, a.name_pt as accommodation_name, a.type as accommodation_type, a.slug as accommodation_slug
+        $sql = "SELECT r.*, a.name_pt as accommodation_name, a.type as accommodation_type, a.slug as accommodation_slug,
+                (SELECT COUNT(*) FROM financial_transactions WHERE reservation_id = r.id AND status = 'completed') as is_in_finance
                 FROM reservations r
                 LEFT JOIN accommodations a ON r.accommodation_id = a.id
                 ORDER BY r.created_at DESC";
@@ -135,17 +136,27 @@ class ReservationsController {
         
         $resId = $pdo->lastInsertId();
         
-        // Auto-create financial income if paid
-        if (($data['payment_status'] ?? '') === 'paid') {
+        // Auto-create financial income if paid or confirmed
+        if (($data['payment_status'] ?? '') === 'paid' || in_array(($data['status'] ?? ''), ['confirmed', 'checked_in'])) {
+            $nights = max(1, round((strtotime($data['check_out']) - strtotime($data['check_in'])) / 86400));
+            $accId = intval($data['accommodation_id']);
+            $stmtAcc = $pdo->prepare("SELECT name_pt FROM accommodations WHERE id = ?");
+            $stmtAcc->execute([$accId]);
+            $accName = $stmtAcc->fetchColumn() ?: 'Acomodação';
+
             $stmtFin = $pdo->prepare("INSERT INTO financial_transactions 
-                (reservation_id, type, category, amount, payment_method, transaction_date, description, status)
-                VALUES (?, 'income', 'diaria', ?, ?, ?, ?, 'completed')");
+                (reservation_id, accommodation_id, checkin_date, checkout_date, nights, type, category, amount, payment_method, transaction_date, description, status)
+                VALUES (?, ?, ?, ?, ?, 'income', 'diaria', ?, ?, ?, ?, 'completed')");
             $stmtFin->execute([
                 $resId,
+                $accId,
+                $data['check_in'],
+                $data['check_out'],
+                $nights,
                 floatval($data['total_price']),
                 $data['payment_method'] ?? 'pix',
-                $data['check_in'],
-                "Reserva #{$resId} - " . $data['guest_name']
+                date('Y-m-d'),
+                "Reserva #{$resId} - {$data['guest_name']} ({$accName} • {$nights} diárias)"
             ]);
         }
         
@@ -185,26 +196,39 @@ class ReservationsController {
         $stmt = $pdo->prepare("UPDATE reservations SET " . implode(', ', $updates) . " WHERE id = ?");
         $stmt->execute($params);
         
-        // If payment status was updated to 'paid', check if transaction exists
-        if ($paymentStatus === 'paid') {
-            $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM financial_transactions WHERE reservation_id = ?");
-            $stmtCheck->execute([$id]);
-            if ($stmtCheck->fetchColumn() == 0) {
-                $stmtRes = $pdo->prepare("SELECT * FROM reservations WHERE id = ?");
-                $stmtRes->execute([$id]);
-                $res = $stmtRes->fetch();
-                if ($res) {
+        // Synchronization with financial module
+        if ($paymentStatus === 'paid' || in_array($status, ['confirmed', 'checked_in'])) {
+            $stmtRes = $pdo->prepare("SELECT r.*, a.name_pt as accommodation_name FROM reservations r LEFT JOIN accommodations a ON r.accommodation_id = a.id WHERE r.id = ?");
+            $stmtRes->execute([$id]);
+            $res = $stmtRes->fetch();
+            
+            if ($res) {
+                $stmtCheck = $pdo->prepare("SELECT id, status FROM financial_transactions WHERE reservation_id = ?");
+                $stmtCheck->execute([$id]);
+                $existingTx = $stmtCheck->fetch();
+
+                if (!$existingTx) {
+                    $nights = max(1, round((strtotime($res['check_out']) - strtotime($res['check_in'])) / 86400));
+                    $accName = $res['accommodation_name'] ?: 'Acomodação';
                     $stmtFin = $pdo->prepare("INSERT INTO financial_transactions 
-                        (reservation_id, type, category, amount, payment_method, transaction_date, description, status)
-                        VALUES (?, 'income', 'diaria', ?, 'pix', ?, ?, 'completed')");
+                        (reservation_id, accommodation_id, checkin_date, checkout_date, nights, type, category, amount, payment_method, transaction_date, description, status)
+                        VALUES (?, ?, ?, ?, ?, 'income', 'diaria', ?, 'pix', ?, ?, 'completed')");
                     $stmtFin->execute([
                         $id,
+                        $res['accommodation_id'],
+                        $res['check_in'],
+                        $res['check_out'],
+                        $nights,
                         $res['total_price'],
                         date('Y-m-d'),
-                        "Reserva #{$id} - {$res['guest_name']}"
+                        "Reserva #{$id} - {$res['guest_name']} ({$accName} • {$nights} diárias)"
                     ]);
+                } else if ($existingTx['status'] === 'cancelled') {
+                    $pdo->prepare("UPDATE financial_transactions SET status = 'completed' WHERE id = ?")->execute([$existingTx['id']]);
                 }
             }
+        } else if ($status === 'cancelled') {
+            $pdo->prepare("UPDATE financial_transactions SET status = 'cancelled' WHERE reservation_id = ?")->execute([$id]);
         }
         
         echo json_encode(['success' => true, 'message' => 'Status da reserva atualizado com sucesso']);

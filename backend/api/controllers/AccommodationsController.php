@@ -222,41 +222,49 @@ class AccommodationsController {
         $checkOut = $input['check_out'] ?? null;
         $guests = intval($input['guests'] ?? 1);
         $pets = (!empty($input['pets']) && $input['pets'] !== 'false' && $input['pets'] !== false && $input['pets'] !== 0 && $input['pets'] !== '0') ? 1 : 0;
+        $targetAccId = !empty($input['accommodation_id']) ? intval($input['accommodation_id']) : null;
         
         if (!$checkIn || !$checkOut) {
             http_response_code(400);
             echo json_encode(['error' => 'Datas de check-in e check-out são obrigatórias']);
             return;
         }
+
+        $days = max(1, round((strtotime($checkOut) - strtotime($checkIn)) / 86400));
         
-        $sql = "SELECT a.* FROM accommodations a 
-                WHERE a.is_active = 1 
-                AND a.max_guests >= ? ";
-                
-        $params = [$guests];
-        
-        if ($pets === 1) {
-            $sql .= " AND a.accepts_pets = 1";
-        }
-        
-        $sql .= " AND a.id NOT IN (
-                    SELECT r.accommodation_id FROM reservations r 
-                    WHERE r.status IN ('confirmed', 'checked_in')
+        // 1. Fetch all active accommodations
+        $stmtAll = $pdo->query("SELECT * FROM accommodations WHERE is_active = 1 ORDER BY id ASC");
+        $allRooms = $stmtAll->fetchAll();
+
+        // 2. Fetch all conflicting reservations in this date range
+        $sqlConf = "SELECT accommodation_id, check_in, check_out, status FROM reservations 
+                    WHERE status IN ('confirmed', 'checked_in')
                     AND (
-                        (r.check_in <= ? AND r.check_out >= ?) OR
-                        (r.check_in <= ? AND r.check_out >= ?) OR
-                        (r.check_in >= ? AND r.check_out <= ?)
-                    )
-                )";
-                
-        $params = array_merge($params, [$checkIn, $checkIn, $checkOut, $checkOut, $checkIn, $checkOut]);
-        
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $availableRooms = $stmt->fetchAll();
-        
-        // Enrich photos
-        foreach ($availableRooms as &$acc) {
+                        (check_in < ? AND check_out > ?) OR
+                        (check_in >= ? AND check_in < ?) OR
+                        (check_out > ? AND check_out <= ?)
+                    )";
+        $stmtConf = $pdo->prepare($sqlConf);
+        $stmtConf->execute([$checkOut, $checkIn, $checkIn, $checkOut, $checkIn, $checkOut]);
+        $conflicts = $stmtConf->fetchAll();
+
+        $occupiedMap = [];
+        foreach ($conflicts as $c) {
+            $accId = $c['accommodation_id'];
+            if (!isset($occupiedMap[$accId])) {
+                $occupiedMap[$accId] = [];
+            }
+            $occupiedMap[$accId][] = [
+                'check_in' => $c['check_in'],
+                'check_out' => $c['check_out'],
+                'status' => $c['status']
+            ];
+        }
+
+        $availableRooms = [];
+        $processedRooms = [];
+
+        foreach ($allRooms as &$acc) {
             $acc['amenities'] = json_decode($acc['amenities_json'] ?? '[]', true) ?: [];
             $acc['accepts_pets'] = intval($acc['accepts_pets'] ?? 0);
             $acc['is_promo'] = intval($acc['is_promo'] ?? 0);
@@ -264,13 +272,40 @@ class AccommodationsController {
             $stmtPhotos->execute([$acc['id']]);
             $acc['photos'] = $stmtPhotos->fetchAll(PDO::FETCH_COLUMN);
             $acc['cover_photo'] = $acc['photos'][0] ?? null;
-            
-            // Calculate total price for date range
-            $days = max(1, (strtotime($checkOut) - strtotime($checkIn)) / 86400);
             $acc['calculated_total'] = $days * $acc['base_price'];
             $acc['nights'] = $days;
+
+            $isOccupied = isset($occupiedMap[$acc['id']]);
+            $fitsGuests = $acc['max_guests'] >= $guests;
+            $fitsPets = ($pets === 0) || ($acc['accepts_pets'] === 1);
+
+            $acc['is_available'] = (!$isOccupied && $fitsGuests && $fitsPets);
+            $acc['is_occupied_in_period'] = $isOccupied;
+            $acc['conflicts'] = $occupiedMap[$acc['id']] ?? [];
+
+            if ($acc['is_available']) {
+                $availableRooms[] = $acc;
+            }
+            $processedRooms[] = $acc;
         }
-        
-        echo json_encode(['success' => true, 'data' => $availableRooms]);
+
+        // 3. Smart alternatives
+        $suggestedAlternatives = [];
+        foreach ($availableRooms as $avail) {
+            if ($targetAccId === null || $avail['id'] !== $targetAccId) {
+                $suggestedAlternatives[] = $avail;
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'data' => $availableRooms,
+            'available' => $availableRooms,
+            'all_rooms' => $processedRooms,
+            'suggested_alternatives' => $suggestedAlternatives,
+            'check_in' => $checkIn,
+            'check_out' => $checkOut,
+            'nights' => $days
+        ]);
     }
 }

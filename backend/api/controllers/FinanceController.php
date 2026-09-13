@@ -73,9 +73,11 @@ class FinanceController {
         $type = $_GET['type'] ?? null;
         $month = $_GET['month'] ?? null;
         
-        $sql = "SELECT f.*, r.guest_name 
+        $sql = "SELECT f.*, r.guest_name, COALESCE(a.name_pt, ar.name_pt) as accommodation_name, COALESCE(a.type, ar.type) as accommodation_type
                 FROM financial_transactions f 
                 LEFT JOIN reservations r ON f.reservation_id = r.id 
+                LEFT JOIN accommodations a ON f.accommodation_id = a.id
+                LEFT JOIN accommodations ar ON r.accommodation_id = ar.id
                 WHERE 1=1";
         $params = [];
         
@@ -108,6 +110,12 @@ class FinanceController {
         $transactionDate = $data['transaction_date'] ?? date('Y-m-d');
         $description = trim($data['description'] ?? '');
         $status = $data['status'] ?? 'completed';
+
+        $accommodationId = !empty($data['accommodation_id']) ? intval($data['accommodation_id']) : null;
+        $checkinDate = !empty($data['checkin_date']) ? $data['checkin_date'] : null;
+        $checkoutDate = !empty($data['checkout_date']) ? $data['checkout_date'] : null;
+        $nights = !empty($data['nights']) ? intval($data['nights']) : null;
+        $reservationId = !empty($data['reservation_id']) ? intval($data['reservation_id']) : null;
         
         if ($amount <= 0) {
             http_response_code(400);
@@ -116,10 +124,13 @@ class FinanceController {
         }
         
         $stmt = $pdo->prepare("INSERT INTO financial_transactions 
-            (type, category, amount, payment_method, transaction_date, description, status) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)");
+            (reservation_id, accommodation_id, checkin_date, checkout_date, nights, type, category, amount, payment_method, transaction_date, description, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
-        $stmt->execute([$type, $category, $amount, $paymentMethod, $transactionDate, $description, $status]);
+        $stmt->execute([
+            $reservationId, $accommodationId, $checkinDate, $checkoutDate, $nights,
+            $type, $category, $amount, $paymentMethod, $transactionDate, $description, $status
+        ]);
         
         echo json_encode(['success' => true, 'id' => $pdo->lastInsertId(), 'message' => 'Lançamento financeiro registrado com sucesso']);
     }

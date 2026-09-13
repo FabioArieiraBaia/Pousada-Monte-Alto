@@ -58,6 +58,19 @@ export default function RoomCard({ room, onOpenBooking }) {
 
             {/* Status Badges */}
             <div className="flex items-center gap-1.5 shrink-0">
+              {/* Availability in Period Badge (When search simulation is active) */}
+              {room.is_occupied_in_period !== undefined && (
+                room.is_occupied_in_period ? (
+                  <span className="bg-rose-600/95 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm">
+                    ● Ocupado nas datas
+                  </span>
+                ) : (
+                  <span className="bg-emerald-600/95 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm">
+                    ● Livre nas datas
+                  </span>
+                )
+              )}
+
               {/* Promo Badge */}
               {isPromo && (
                 <span className="bg-amber-500 text-stone-950 text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md whitespace-nowrap">

@@ -108,6 +108,10 @@ function initDatabase($pdo) {
     $pdo->exec("CREATE TABLE IF NOT EXISTS financial_transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         reservation_id INTEGER NULL,
+        accommodation_id INTEGER NULL,
+        checkin_date DATE NULL,
+        checkout_date DATE NULL,
+        nights INTEGER NULL,
         type TEXT NOT NULL,
         category TEXT NOT NULL,
         amount REAL NOT NULL,
@@ -116,8 +120,25 @@ function initDatabase($pdo) {
         description TEXT,
         status TEXT DEFAULT 'completed',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE SET NULL
+        FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE SET NULL,
+        FOREIGN KEY (accommodation_id) REFERENCES accommodations(id) ON DELETE SET NULL
     )");
+
+    // Auto-migration for financial_transactions columns
+    try {
+        $finCols = $pdo->query("PRAGMA table_info(financial_transactions)")->fetchAll(PDO::FETCH_COLUMN, 1);
+        $finFields = [
+            'accommodation_id' => 'INTEGER NULL',
+            'checkin_date' => 'DATE NULL',
+            'checkout_date' => 'DATE NULL',
+            'nights' => 'INTEGER NULL'
+        ];
+        foreach ($finFields as $field => $type) {
+            if (!in_array($field, $finCols)) {
+                $pdo->exec("ALTER TABLE financial_transactions ADD COLUMN $field $type");
+            }
+        }
+    } catch (Exception $e) {}
 
     // 7. Blog Posts
     $pdo->exec("CREATE TABLE IF NOT EXISTS blog_posts (

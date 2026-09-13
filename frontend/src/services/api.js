@@ -50,9 +50,9 @@ export const api = {
   // Accommodations
   getAccommodations: (publicOnly = true) => request(publicOnly ? '/accommodations' : '/accommodations/admin'),
   getAccommodationBySlug: (slug) => request(`/accommodations/${slug}`),
-  checkAvailability: (check_in, check_out, guests = 1, pets = false) => request('/accommodations/check-availability', {
+  checkAvailability: (check_in, check_out, guests = 1, pets = false, accommodation_id = null) => request('/accommodations/check-availability', {
     method: 'POST',
-    body: JSON.stringify({ check_in, check_out, guests, pets })
+    body: JSON.stringify({ check_in, check_out, guests, pets, accommodation_id })
   }),
   createAccommodation: (data) => request('/accommodations', {
     method: 'POST',

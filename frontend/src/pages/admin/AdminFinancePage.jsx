@@ -1,29 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { 
   DollarSign, TrendingUp, TrendingDown, Plus, 
-  Filter, Calendar, Trash2, ArrowUpRight, ArrowDownRight, Tag
+  Filter, Calendar, Trash2, ArrowUpRight, ArrowDownRight, Tag, BedDouble
 } from 'lucide-react';
 import { api } from '../../services/api';
 
 export default function AdminFinancePage() {
   const [summary, setSummary] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
 
-  const [form, setForm] = useState({
+  const initialForm = {
     type: 'income',
     category: 'diaria',
     amount: '',
     payment_method: 'pix',
     transaction_date: new Date().toISOString().split('T')[0],
     description: '',
-    status: 'completed'
-  });
+    status: 'completed',
+    accommodation_id: '',
+    checkin_date: '',
+    checkout_date: '',
+    nights: 1
+  };
+
+  const [form, setForm] = useState(initialForm);
 
   useEffect(() => {
     loadFinanceData();
+    api.getAccommodations(false).then(res => {
+      if (res.data) setRooms(res.data);
+    }).catch(err => console.error(err));
   }, [typeFilter]);
 
   const loadFinanceData = async () => {
@@ -42,20 +52,37 @@ export default function AdminFinancePage() {
     }
   };
 
+  const handleLodgingChange = (field, val) => {
+    const updated = { ...form, [field]: val };
+    
+    let nights = updated.nights || 1;
+    if (updated.checkin_date && updated.checkout_date) {
+      const diff = (new Date(updated.checkout_date) - new Date(updated.checkin_date)) / 86400000;
+      nights = Math.max(1, Math.round(diff));
+      updated.nights = nights;
+    }
+
+    const selectedRoom = rooms.find(r => String(r.id) === String(updated.accommodation_id));
+    if (selectedRoom) {
+      if (!updated.amount || field === 'checkin_date' || field === 'checkout_date' || field === 'accommodation_id') {
+        updated.amount = (nights * selectedRoom.base_price).toFixed(2);
+      }
+      const datesText = (updated.checkin_date && updated.checkout_date)
+        ? ` (${nights} diárias: ${new Date(updated.checkin_date + 'T12:00:00').toLocaleDateString('pt-BR')} a ${new Date(updated.checkout_date + 'T12:00:00').toLocaleDateString('pt-BR')})`
+        : ` (${nights} diárias)`;
+      if (!updated.description || updated.description.startsWith('Diária')) {
+        updated.description = `Diárias ${selectedRoom.name_pt}${datesText}`;
+      }
+    }
+    setForm(updated);
+  };
+
   const handleCreateTransaction = async (e) => {
     e.preventDefault();
     try {
       await api.createFinanceTransaction(form);
       setModalOpen(false);
-      setForm({
-        type: 'income',
-        category: 'diaria',
-        amount: '',
-        payment_method: 'pix',
-        transaction_date: new Date().toISOString().split('T')[0],
-        description: '',
-        status: 'completed'
-      });
+      setForm(initialForm);
       loadFinanceData();
     } catch (err) {
       alert(err.message || 'Erro ao lançar transação');
@@ -259,8 +286,28 @@ export default function AdminFinancePage() {
                     <td className="px-6 py-4 font-mono text-stone-500">
                       {new Date(t.transaction_date).toLocaleDateString('pt-BR')}
                     </td>
-                    <td className="px-6 py-4 font-semibold text-stone-900">
-                      {t.description || (t.guest_name ? `Reserva #${t.reservation_id} - ${t.guest_name}` : 'Lançamento')}
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-stone-900">
+                        {t.description || (t.guest_name ? `Reserva #${t.reservation_id} - ${t.guest_name}` : 'Lançamento')}
+                      </div>
+                      {t.accommodation_name && (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 border border-amber-200">
+                            <BedDouble className="w-3 h-3 text-amber-700" />
+                            {t.accommodation_name}
+                          </span>
+                          {t.nights && (
+                            <span className="bg-stone-100 text-stone-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-md">
+                              {t.nights} {t.nights === 1 ? 'diária' : 'diárias'}
+                            </span>
+                          )}
+                          {t.checkin_date && t.checkout_date && (
+                            <span className="text-[10px] text-stone-400 font-mono">
+                              ({new Date(t.checkin_date + 'T12:00:00').toLocaleDateString('pt-BR')} ➔ {new Date(t.checkout_date + 'T12:00:00').toLocaleDateString('pt-BR')})
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 capitalize">
                       <span className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded-md font-medium">
@@ -346,7 +393,14 @@ export default function AdminFinancePage() {
                 </label>
                 <select
                   value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  onChange={(e) => {
+                    const newCat = e.target.value;
+                    setForm(prev => ({
+                      ...prev,
+                      category: newCat,
+                      ...(newCat !== 'diaria' ? { accommodation_id: '', checkin_date: '', checkout_date: '', nights: 0 } : {})
+                    }));
+                  }}
                   className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none"
                 >
                   <option value="diaria">Diária de Hospedagem</option>
@@ -360,6 +414,67 @@ export default function AdminFinancePage() {
                   <option value="outros">Outros</option>
                 </select>
               </div>
+
+              {/* Campos específicos de Hospedagem / Diárias */}
+              {form.category === 'diaria' && (
+                <div className="p-3.5 bg-sand-50 rounded-2xl border border-amber-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-amber-900 uppercase flex items-center gap-1.5">
+                      <BedDouble className="w-3.5 h-3.5 text-amber-600" />
+                      Dados da Hospedagem
+                    </span>
+                    {form.nights > 0 && (
+                      <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                        {form.nights} {form.nights === 1 ? 'diária' : 'diárias'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-600 uppercase mb-1">
+                      Suíte ou Loft *
+                    </label>
+                    <select
+                      value={form.accommodation_id}
+                      onChange={(e) => handleLodgingChange('accommodation_id', e.target.value)}
+                      className="w-full text-xs p-2 rounded-xl border border-stone-300 bg-white focus:outline-none"
+                    >
+                      <option value="">Selecione a acomodação...</option>
+                      {rooms.map(room => (
+                        <option key={room.id} value={room.id}>
+                          {room.name_pt || room.name} (R$ {Number(room.base_price || 0).toFixed(2)}/noite)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase mb-1">
+                        Check-in
+                      </label>
+                      <input
+                        type="date"
+                        value={form.checkin_date}
+                        onChange={(e) => handleLodgingChange('checkin_date', e.target.value)}
+                        className="w-full text-xs p-2 rounded-xl border border-stone-300 bg-white focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-600 uppercase mb-1">
+                        Check-out
+                      </label>
+                      <input
+                        type="date"
+                        value={form.checkout_date}
+                        min={form.checkin_date || undefined}
+                        onChange={(e) => handleLodgingChange('checkout_date', e.target.value)}
+                        className="w-full text-xs p-2 rounded-xl border border-stone-300 bg-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">

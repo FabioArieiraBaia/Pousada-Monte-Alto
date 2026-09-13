@@ -31,6 +31,9 @@ export default function RoomDetailPage() {
 
   const [checkIn, setCheckIn] = useState(tomorrow.toISOString().split('T')[0]);
   const [checkOut, setCheckOut] = useState(checkoutDefault.toISOString().split('T')[0]);
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [suggestedAlternatives, setSuggestedAlternatives] = useState([]);
 
   useEffect(() => {
     setLoading(true);
@@ -44,6 +47,24 @@ export default function RoomDetailPage() {
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  // Check availability whenever dates or room change
+  useEffect(() => {
+    if (!room?.id || !checkIn || !checkOut) return;
+    if (new Date(checkOut) <= new Date(checkIn)) return;
+
+    setCheckingAvailability(true);
+    api.checkAvailability(checkIn, checkOut, 1, false, room.id)
+      .then(res => {
+        setIsAvailable(res.available !== false);
+        setSuggestedAlternatives(res.suggested_alternatives || []);
+      })
+      .catch(err => {
+        console.warn('Erro ao verificar disponibilidade:', err);
+        setIsAvailable(true);
+      })
+      .finally(() => setCheckingAvailability(false));
+  }, [room?.id, checkIn, checkOut]);
 
   const photos = room?.photos || [];
   const currentPhotoUrl = activePhoto || (photos[0]?.photo_url || photos[0]) || 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1400&q=80';
@@ -408,6 +429,70 @@ export default function RoomDetailPage() {
               </div>
             </div>
 
+            {/* Availability Status / Conflict Warning */}
+            {checkingAvailability ? (
+              <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 text-xs text-stone-500 flex items-center gap-2">
+                <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                <span>Verificando disponibilidade do período...</span>
+              </div>
+            ) : !isAvailable ? (
+              <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 space-y-3">
+                <div className="flex items-start gap-2 text-rose-800">
+                  <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                  <div>
+                    <span className="text-xs font-bold block">Acomodação indisponível para estas datas</span>
+                    <span className="text-[11px] text-rose-600">
+                      Já existe uma reserva nesta suíte entre {new Date(checkIn + 'T12:00:00').toLocaleDateString('pt-BR')} e {new Date(checkOut + 'T12:00:00').toLocaleDateString('pt-BR')}.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Suggestions Section */}
+                {suggestedAlternatives.length > 0 && (
+                  <div className="pt-2 border-t border-rose-200/80">
+                    <span className="text-[11px] font-bold text-stone-800 uppercase block mb-2">
+                      💡 Opções Disponíveis nestas Mesmas Datas:
+                    </span>
+                    <div className="space-y-2">
+                      {suggestedAlternatives.map(alt => (
+                        <Link
+                          key={alt.id}
+                          to={`/acomodacoes/${alt.slug}`}
+                          className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-emerald-300 hover:border-emerald-500 shadow-sm transition-all group"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {alt.cover_photo && (
+                              <img
+                                src={alt.cover_photo}
+                                alt={alt.name_pt}
+                                className="w-10 h-10 rounded-lg object-cover shrink-0"
+                              />
+                            )}
+                            <div className="truncate">
+                              <span className="text-xs font-bold text-stone-900 group-hover:text-emerald-700 block truncate">
+                                {alt.name_pt}
+                              </span>
+                              <span className="text-[10px] text-emerald-600 font-semibold">
+                                🟢 Livre para suas datas
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[11px] font-bold text-amber-700 group-hover:underline shrink-0 ml-2">
+                            Ver Quarto →
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2 font-semibold">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                <span>Acomodação disponível para o período selecionado!</span>
+              </div>
+            )}
+
             {/* Estimate Box */}
             <div className="bg-amber-50/80 p-4 rounded-2xl border border-amber-200 space-y-2 text-xs text-stone-700">
               <div className="flex justify-between">
@@ -428,10 +513,15 @@ export default function RoomDetailPage() {
             <div className="space-y-3">
               <button
                 onClick={() => setIsBookingOpen(true)}
-                className="w-full bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold py-3.5 rounded-2xl shadow-md hover:shadow-lg transition-all uppercase tracking-wider text-xs flex items-center justify-center gap-2"
+                disabled={!isAvailable}
+                className={`w-full font-bold py-3.5 rounded-2xl shadow-md transition-all uppercase tracking-wider text-xs flex items-center justify-center gap-2 ${
+                  !isAvailable
+                    ? 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'
+                    : 'bg-amber-500 hover:bg-amber-600 text-stone-950 hover:shadow-lg'
+                }`}
               >
                 <FileText className="w-4 h-4" />
-                <span>Consultar / Reservar via Formulário</span>
+                <span>{isAvailable ? 'Consultar / Reservar via Formulário' : 'Indisponível nestas Datas'}</span>
               </button>
 
               <a

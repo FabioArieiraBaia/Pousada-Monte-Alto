@@ -35,7 +35,10 @@ export default function AccommodationsPage() {
 
     if (checkIn && checkOut) {
       api.checkAvailability(checkIn, checkOut, guests, pets)
-        .then(res => setRooms(res.data || []))
+        .then(res => {
+          // If all_rooms is returned, use all_rooms to let users see both available and occupied rooms with status badges
+          setRooms(res.all_rooms || res.data || []);
+        })
         .catch(() => {
           return api.getAccommodations(true).then(res => setRooms(res.data || []));
         })
