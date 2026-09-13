@@ -167,6 +167,10 @@ try {
         ReservationsController::updateStatus($pdo, $m[1]);
         exit();
     }
+    if (preg_match('#^/reservations/(\d+)/cancel$#', $path, $m) && $method === 'POST') {
+        ReservationsController::cancelWithRefund($pdo, $m[1]);
+        exit();
+    }
     if (preg_match('#^/reservations/(\d+)$#', $path, $m) && $method === 'DELETE') {
         ReservationsController::delete($pdo, $m[1]);
         exit();

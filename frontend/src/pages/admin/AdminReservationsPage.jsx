@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Calendar, Plus, MessageCircle, Check, X, 
   Trash2, Filter, DollarSign, Clock, Users, PawPrint, Edit2, AlertCircle,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Ban, RotateCcw, AlertTriangle
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -15,6 +15,17 @@ export default function AdminReservationsPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRes, setEditingRes] = useState(null);
+
+  // Cancel & Refund Modal State
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [resToCancel, setResToCancel] = useState(null);
+  const [cancelForm, setCancelForm] = useState({
+    refund_type: 'full', // 'none' | 'full' | 'partial'
+    refund_amount: 0,
+    refund_reason: 'Cancelamento a pedido do hóspede',
+    payment_method: 'pix'
+  });
+  const [submittingCancel, setSubmittingCancel] = useState(false);
 
   const [form, setForm] = useState({
     accommodation_id: '',
@@ -132,7 +143,25 @@ export default function AdminReservationsPage() {
     }
   };
 
+  const openCancelModal = (res) => {
+    setResToCancel(res);
+    setCancelForm({
+      refund_type: res.payment_status === 'paid' ? 'full' : 'none',
+      refund_amount: res.total_price || 0,
+      refund_reason: 'Cancelamento a pedido do hóspede',
+      payment_method: 'pix'
+    });
+    setCancelModalOpen(true);
+  };
+
   const handleStatusChange = async (id, newStatus, paymentStatus = null) => {
+    if (newStatus === 'cancelled') {
+      const targetRes = reservations.find(r => r.id === id);
+      if (targetRes) {
+        openCancelModal(targetRes);
+        return;
+      }
+    }
     try {
       await api.updateReservationStatus(id, newStatus, paymentStatus);
       loadData();
@@ -141,8 +170,25 @@ export default function AdminReservationsPage() {
     }
   };
 
+  const handleCancelSubmit = async (e) => {
+    e.preventDefault();
+    if (!resToCancel) return;
+    setSubmittingCancel(true);
+    try {
+      const res = await api.cancelReservation(resToCancel.id, cancelForm);
+      alert(res.message || 'Reserva cancelada com sucesso!');
+      setCancelModalOpen(false);
+      setModalOpen(false); // Close edit modal if open
+      loadData();
+    } catch (err) {
+      alert(err.message || 'Erro ao processar cancelamento e reembolso');
+    } finally {
+      setSubmittingCancel(false);
+    }
+  };
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Deseja realmente excluir esta reserva?')) return;
+    if (!window.confirm('Deseja realmente excluir esta reserva do histórico?')) return;
     try {
       await api.deleteReservation(id);
       loadData();
@@ -523,15 +569,31 @@ export default function AdminReservationsPage() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
+                            onClick={() => openReservationDetails(res)}
+                            className="bg-stone-100 hover:bg-stone-200 text-stone-700 p-2 rounded-xl transition-colors"
+                            title="Editar dados da reserva"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          {res.status !== 'cancelled' && (
+                            <button
+                              onClick={() => openCancelModal(res)}
+                              className="bg-rose-50 hover:bg-rose-100 text-rose-700 p-2 rounded-xl transition-colors"
+                              title="Cancelar Reserva & Reembolso"
+                            >
+                              <Ban className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
                             onClick={() => handleOpenWhatsApp(res.id)}
                             className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-xl transition-colors"
-                            title="Enviar confirmação no WhatsApp"
+                            title="Enviar mensagem no WhatsApp"
                           >
                             <MessageCircle className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(res.id)}
-                            className="bg-rose-50 hover:bg-rose-100 text-rose-700 p-2 rounded-xl transition-colors"
+                            className="bg-stone-50 hover:bg-rose-50 text-stone-400 hover:text-rose-700 p-2 rounded-xl transition-colors"
                             title="Excluir reserva"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -671,19 +733,214 @@ export default function AdminReservationsPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-100">
+              <div className="flex items-center justify-between gap-3 pt-4 border-t border-stone-100">
+                {editingRes && editingRes.status !== 'cancelled' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openCancelModal(editingRes);
+                    }}
+                    className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors"
+                  >
+                    <Ban className="w-3.5 h-3.5" />
+                    <span>Cancelar Reserva</span>
+                  </button>
+                ) : <div />}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-2.5 rounded-xl text-xs"
+                  >
+                    Fechar
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider"
+                  >
+                    Salvar Reserva
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🔴 MODAL DE CANCELAMENTO & REEMBOLSO (PARCIAL OU TOTAL) 🔴 */}
+      {cancelModalOpen && resToCancel && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-rose-100 my-8 animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="bg-rose-900 text-white p-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-rose-800/80 flex items-center justify-center text-rose-200">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] text-rose-300 font-bold uppercase tracking-widest block">
+                    Gestão de Cancelamento
+                  </span>
+                  <h3 className="font-serif text-xl font-bold text-white">
+                    Cancelar Reserva #{resToCancel.id}
+                  </h3>
+                </div>
+              </div>
+              <button 
+                onClick={() => setCancelModalOpen(false)} 
+                className="p-1.5 rounded-full bg-rose-800 hover:bg-rose-700 text-rose-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleCancelSubmit} className="p-6 space-y-5">
+              {/* Summary Card */}
+              <div className="p-3.5 bg-sand-50 rounded-2xl border border-stone-200 text-xs space-y-1.5">
+                <div className="flex justify-between font-bold text-stone-900">
+                  <span>Hóspede: {resToCancel.guest_name}</span>
+                  <span className="text-amber-700 font-mono">R$ {Number(resToCancel.total_price).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-stone-500 text-[11px]">
+                  <span>Acomodação: {resToCancel.accommodation_name || 'Acomodação'}</span>
+                  <span className={`font-semibold uppercase ${
+                    resToCancel.payment_status === 'paid' ? 'text-emerald-600' : 'text-amber-600'
+                  }`}>
+                    {resToCancel.payment_status === 'paid' ? '● Pago' : '○ Não Pago'}
+                  </span>
+                </div>
+                <div className="text-[11px] text-stone-400">
+                  Período: {new Date(resToCancel.check_in + 'T12:00:00').toLocaleDateString('pt-BR')} até {new Date(resToCancel.check_out + 'T12:00:00').toLocaleDateString('pt-BR')}
+                </div>
+              </div>
+
+              {/* Refund Type Selector */}
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 uppercase mb-2">
+                  Política / Tipo de Reembolso *
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'full', label: 'Reembolso Total', desc: '100% do valor' },
+                    { id: 'partial', label: 'Reembolso Parcial', desc: 'Valor personalizado' },
+                    { id: 'none', label: 'Sem Reembolso', desc: 'Taxa / No-show' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        setCancelForm(prev => ({
+                          ...prev,
+                          refund_type: tab.id,
+                          refund_amount: tab.id === 'full' 
+                            ? Number(resToCancel.total_price) 
+                            : tab.id === 'none' ? 0 : Number(resToCancel.total_price) * 0.5
+                        }));
+                      }}
+                      className={`p-3 rounded-2xl text-left border transition-all ${
+                        cancelForm.refund_type === tab.id
+                          ? 'border-rose-600 bg-rose-50/80 ring-2 ring-rose-500/20 shadow-sm'
+                          : 'border-stone-200 hover:bg-stone-50'
+                      }`}
+                    >
+                      <span className={`block text-xs font-bold ${
+                        cancelForm.refund_type === tab.id ? 'text-rose-900' : 'text-stone-800'
+                      }`}>
+                        {tab.label}
+                      </span>
+                      <span className="text-[10px] text-stone-500 block mt-0.5">
+                        {tab.desc}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Conditional Amount & Method for Refunds */}
+              {cancelForm.refund_type !== 'none' && (
+                <div className="p-4 bg-rose-50/60 rounded-2xl border border-rose-200/80 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-700 uppercase mb-1">
+                        Valor a Reembolsar (R$) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max={resToCancel.total_price}
+                        required
+                        disabled={cancelForm.refund_type === 'full'}
+                        value={cancelForm.refund_amount}
+                        onChange={(e) => setCancelForm({ ...cancelForm, refund_amount: Number(e.target.value) })}
+                        className={`w-full text-xs p-2.5 rounded-xl border bg-white focus:outline-none font-bold ${
+                          cancelForm.refund_type === 'full' 
+                            ? 'border-stone-200 text-stone-500 cursor-not-allowed bg-stone-100' 
+                            : 'border-rose-300 text-rose-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-700 uppercase mb-1">
+                        Forma de Devolução
+                      </label>
+                      <select
+                        value={cancelForm.payment_method}
+                        onChange={(e) => setCancelForm({ ...cancelForm, payment_method: e.target.value })}
+                        className="w-full text-xs p-2.5 rounded-xl border border-stone-300 bg-white focus:outline-none"
+                      >
+                        <option value="pix">PIX</option>
+                        <option value="transferencia">Transferência Bancária</option>
+                        <option value="cartao_credito">Estorno no Cartão</option>
+                        <option value="dinheiro">Dinheiro</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-rose-800/80 flex items-center gap-1.5 font-medium">
+                    <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      Será lançado automaticamente um débito/despesa de <strong>R$ {Number(cancelForm.refund_amount).toFixed(2)}</strong> na categoria <em>Reembolso</em> no módulo financeiro.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Reason Input */}
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1">
+                  Motivo do Cancelamento
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={cancelForm.refund_reason}
+                  onChange={(e) => setCancelForm({ ...cancelForm, refund_reason: e.target.value })}
+                  placeholder="Ex: Imprevisto de saúde / Pedido do hóspede / Condições climáticas"
+                  className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none"
+                />
+              </div>
+
+              {/* Modal Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-stone-100">
                 <button
                   type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-2.5 rounded-xl text-xs"
+                  onClick={() => setCancelModalOpen(false)}
+                  disabled={submittingCancel}
+                  className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-2.5 rounded-xl text-xs font-semibold"
                 >
-                  Cancelar
+                  Voltar
                 </button>
                 <button
                   type="submit"
-                  className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider"
+                  disabled={submittingCancel}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md disabled:opacity-50"
                 >
-                  Salvar Reserva
+                  <Ban className="w-3.5 h-3.5" />
+                  <span>{submittingCancel ? 'Processando...' : 'Confirmar Cancelamento'}</span>
                 </button>
               </div>
             </form>

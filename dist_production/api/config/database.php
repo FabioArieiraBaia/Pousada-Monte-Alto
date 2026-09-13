@@ -138,6 +138,19 @@ function initDatabase($pdo) {
                 $pdo->exec("ALTER TABLE financial_transactions ADD COLUMN $field $type");
             }
         }
+
+        // Auto-migration for reservations refund columns
+        $resCols = $pdo->query("PRAGMA table_info(reservations)")->fetchAll(PDO::FETCH_COLUMN, 1);
+        $resFields = [
+            'refund_amount' => 'REAL DEFAULT 0',
+            'refund_reason' => 'TEXT NULL',
+            'refund_date' => 'DATE NULL'
+        ];
+        foreach ($resFields as $field => $type) {
+            if (!in_array($field, $resCols)) {
+                $pdo->exec("ALTER TABLE reservations ADD COLUMN $field $type");
+            }
+        }
     } catch (Exception $e) {}
 
     // 7. Blog Posts

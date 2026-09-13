@@ -105,6 +105,10 @@ export const api = {
     method: 'PUT',
     body: JSON.stringify({ status, payment_status, notes })
   }),
+  cancelReservation: (id, data) => request(`/reservations/${id}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
   deleteReservation: (id) => request(`/reservations/${id}`, {
     method: 'DELETE'
   }),

@@ -234,6 +234,130 @@ class ReservationsController {
         echo json_encode(['success' => true, 'message' => 'Status da reserva atualizado com sucesso']);
     }
 
+    public static function cancelWithRefund($pdo, $id) {
+        requireAuth($pdo);
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        $refundType = $data['refund_type'] ?? 'none'; // 'none' | 'full' | 'partial'
+        $refundAmount = floatval($data['refund_amount'] ?? 0);
+        $refundReason = trim($data['refund_reason'] ?? 'Cancelamento a pedido do hóspede');
+        $paymentMethod = $data['payment_method'] ?? 'pix';
+
+        // Fetch reservation and accommodation details
+        $stmtRes = $pdo->prepare("SELECT r.*, a.name_pt as accommodation_name FROM reservations r LEFT JOIN accommodations a ON r.accommodation_id = a.id WHERE r.id = ?");
+        $stmtRes->execute([$id]);
+        $res = $stmtRes->fetch();
+
+        if (!$res) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Reserva não encontrada']);
+            return;
+        }
+
+        $totalPrice = floatval($res['total_price']);
+
+        if ($refundType === 'full') {
+            $refundAmount = $totalPrice;
+        } else if ($refundType === 'none') {
+            $refundAmount = 0;
+        } else if ($refundType === 'partial') {
+            if ($refundAmount <= 0) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Informe um valor válido para o reembolso parcial']);
+                return;
+            }
+            if ($refundAmount > $totalPrice) {
+                $refundAmount = $totalPrice;
+            }
+        }
+
+        // 1. Update reservation status to cancelled and save refund info
+        $stmtUpdate = $pdo->prepare("UPDATE reservations SET 
+            status = 'cancelled', 
+            payment_status = CASE WHEN ? > 0 THEN 'refunded' ELSE payment_status END,
+            refund_amount = ?, 
+            refund_reason = ?, 
+            refund_date = ? 
+            WHERE id = ?");
+        $stmtUpdate->execute([
+            $refundAmount,
+            $refundAmount,
+            $refundReason,
+            date('Y-m-d'),
+            $id
+        ]);
+
+        // 2. Cancel original income transactions if full refund, or keep partial
+        // First check existing income transaction
+        $stmtCheck = $pdo->prepare("SELECT * FROM financial_transactions WHERE reservation_id = ? AND type = 'income'");
+        $stmtCheck->execute([$id]);
+        $incomeTx = $stmtCheck->fetch();
+
+        if ($incomeTx) {
+            if ($refundType === 'full') {
+                // If 100% refunded, we can either cancel the original income OR insert an explicit expense of refund
+                // In accounting best practices, inserting an expense of category 'reembolso' keeps audit trails clear
+                // Let's create an expense transaction for the refund
+                $stmtExp = $pdo->prepare("INSERT INTO financial_transactions 
+                    (reservation_id, accommodation_id, checkin_date, checkout_date, nights, type, category, amount, payment_method, transaction_date, description, status)
+                    VALUES (?, ?, ?, ?, ?, 'expense', 'reembolso', ?, ?, ?, ?, 'completed')");
+                $stmtExp->execute([
+                    $id,
+                    $res['accommodation_id'],
+                    $res['check_in'],
+                    $res['check_out'],
+                    $incomeTx['nights'] ?? 0,
+                    $refundAmount,
+                    $paymentMethod,
+                    date('Y-m-d'),
+                    "Reembolso Total da Reserva #{$id} - {$res['guest_name']} ({$refundReason})"
+                ]);
+            } else if ($refundType === 'partial' && $refundAmount > 0) {
+                // Insert expense transaction for the partial refund
+                $stmtExp = $pdo->prepare("INSERT INTO financial_transactions 
+                    (reservation_id, accommodation_id, checkin_date, checkout_date, nights, type, category, amount, payment_method, transaction_date, description, status)
+                    VALUES (?, ?, ?, ?, ?, 'expense', 'reembolso', ?, ?, ?, ?, 'completed')");
+                $stmtExp->execute([
+                    $id,
+                    $res['accommodation_id'],
+                    $res['check_in'],
+                    $res['check_out'],
+                    $incomeTx['nights'] ?? 0,
+                    $refundAmount,
+                    $paymentMethod,
+                    date('Y-m-d'),
+                    "Reembolso Parcial da Reserva #{$id} - {$res['guest_name']} (R$ " . number_format($refundAmount, 2, ',', '.') . " de R$ " . number_format($totalPrice, 2, ',', '.') . ") - Motivo: {$refundReason}"
+                ]);
+            } else {
+                // No refund: Mark reservation as cancelled, income remains or can be labelled as no-show fee
+                // Keep income transaction as completed or retention fee
+                $pdo->prepare("UPDATE financial_transactions SET description = description || ' (Cancelada sem reembolso / Taxa de retenção)' WHERE id = ?")->execute([$incomeTx['id']]);
+            }
+        } else if ($refundAmount > 0) {
+            // Even if there wasn't a prior registered income, register the refund expense
+            $stmtExp = $pdo->prepare("INSERT INTO financial_transactions 
+                (reservation_id, accommodation_id, checkin_date, checkout_date, nights, type, category, amount, payment_method, transaction_date, description, status)
+                VALUES (?, ?, ?, ?, ?, 'expense', 'reembolso', ?, ?, ?, ?, 'completed')");
+            $stmtExp->execute([
+                $id,
+                $res['accommodation_id'],
+                $res['check_in'],
+                $res['check_out'],
+                0,
+                $refundAmount,
+                $paymentMethod,
+                date('Y-m-d'),
+                "Reembolso Reserva #{$id} - {$res['guest_name']} ({$refundReason})"
+            ]);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Reserva cancelada com sucesso' . ($refundAmount > 0 ? " e reembolso de R$ " . number_format($refundAmount, 2, ',', '.') . " lançado no financeiro." : "."),
+            'refund_amount' => $refundAmount
+        ]);
+    }
+
     public static function delete($pdo, $id) {
         requireAuth($pdo);
         $pdo->prepare("DELETE FROM reservations WHERE id = ?")->execute([$id]);
