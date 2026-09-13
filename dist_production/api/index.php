@@ -240,6 +240,10 @@ try {
         ChatController::updateLeadStatus($pdo, $m[1]);
         exit();
     }
+    if ($path === '/ai-config' && $method === 'GET') {
+        ChatController::getPublicConfig($pdo);
+        exit();
+    }
     if ($path === '/ai-settings' && $method === 'GET') {
         ChatController::getAiSettings($pdo);
         exit();

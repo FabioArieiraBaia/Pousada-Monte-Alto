@@ -16,9 +16,22 @@ export default function AIChatWidget() {
   const [loading, setLoading] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [agentName, setAgentName] = useState('Marina - Concierge Monte Alto');
+  const [agentAvatar, setAgentAvatar] = useState('');
+  const [isActive, setIsActive] = useState(true);
 
   const messagesEndRef = useRef(null);
   const chatInputRef = useRef(null);
+
+  // Fetch public AI configuration (name, avatar, active state)
+  useEffect(() => {
+    api.getPublicAIConfig().then(res => {
+      if (res && res.data) {
+        if (res.data.agent_name) setAgentName(res.data.agent_name);
+        if (res.data.agent_avatar !== undefined) setAgentAvatar(res.data.agent_avatar || '');
+        if (res.data.is_active !== undefined) setIsActive(Boolean(res.data.is_active));
+      }
+    }).catch(() => {});
+  }, []);
 
   // Quick prompt pills
   const quickPills = [
@@ -108,6 +121,8 @@ export default function AIChatWidget() {
     }
   };
 
+  if (!isActive) return null;
+
   return (
     <>
       {/* 🟢 FLOATING LAUNCHER BUTTON */}
@@ -117,9 +132,17 @@ export default function AIChatWidget() {
         {!isOpen && (
           <button
             onClick={() => setIsOpen(true)}
-            className="hidden sm:flex items-center gap-2 bg-white/95 backdrop-blur-md text-stone-800 text-xs font-bold py-2 px-4 rounded-full shadow-2xl border border-stone-200/80 hover:bg-amber-50 transition-all transform hover:scale-105 cursor-pointer animate-bounce"
+            className="hidden sm:flex items-center gap-2.5 bg-white/95 backdrop-blur-md text-stone-800 text-xs font-bold py-2 px-4 rounded-full shadow-2xl border border-stone-200/80 hover:bg-amber-50 transition-all transform hover:scale-105 cursor-pointer animate-bounce"
           >
-            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+            {agentAvatar ? (
+              <img 
+                src={agentAvatar} 
+                alt={agentName} 
+                className="w-5 h-5 rounded-full object-cover border border-amber-400/60"
+              />
+            ) : (
+              <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+            )}
             <span>Fale com a Concierge Virtual</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
           </button>
@@ -129,10 +152,16 @@ export default function AIChatWidget() {
         <button
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Abrir Atendimento Inteligente"
-          className="relative w-14 h-14 rounded-full bg-gradient-to-tr from-stone-900 via-amber-900 to-amber-600 text-white shadow-2xl flex items-center justify-center border-2 border-amber-400/80 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer"
+          className="relative w-14 h-14 rounded-full bg-gradient-to-tr from-stone-900 via-amber-900 to-amber-600 text-white shadow-2xl flex items-center justify-center border-2 border-amber-400/80 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer overflow-hidden group"
         >
           {isOpen ? (
             <X className="w-6 h-6 text-white" />
+          ) : agentAvatar ? (
+            <img 
+              src={agentAvatar} 
+              alt={agentName} 
+              className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+            />
           ) : (
             <div className="relative">
               <Sparkles className="w-6 h-6 text-amber-300" />
@@ -143,7 +172,7 @@ export default function AIChatWidget() {
           )}
 
           {/* Online status indicator */}
-          <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-stone-900" />
+          <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-stone-900 shadow" />
         </button>
       </div>
 
@@ -155,18 +184,23 @@ export default function AIChatWidget() {
           <div className="bg-gradient-to-r from-stone-950 via-stone-900 to-amber-950 p-4 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-stone-950 font-black flex items-center justify-center shadow-md">
-                  <Bot className="w-5 h-5 text-stone-950" />
-                </div>
+                {agentAvatar ? (
+                  <img 
+                    src={agentAvatar} 
+                    alt={agentName} 
+                    className="w-10 h-10 rounded-full object-cover border-2 border-amber-400/60 shadow-md"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-stone-950 font-black flex items-center justify-center shadow-md">
+                    <Bot className="w-5 h-5 text-stone-950" />
+                  </div>
+                )}
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-stone-900" />
               </div>
 
               <div>
-                <h3 className="font-serif font-bold text-sm text-white flex items-center gap-1.5">
-                  <span>{agentName}</span>
-                  <span className="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/30 font-sans font-bold">
-                    IA 2.5 Flash
-                  </span>
+                <h3 className="font-serif font-bold text-sm text-white">
+                  {agentName}
                 </h3>
                 <span className="text-[11px] text-emerald-400 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -177,7 +211,7 @@ export default function AIChatWidget() {
 
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-full text-stone-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-full text-stone-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -192,17 +226,29 @@ export default function AIChatWidget() {
                   key={msg.id}
                   className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
                 >
-                  <div
-                    className={`max-w-[85%] p-3.5 rounded-2xl shadow-md ${
-                      isUser
-                        ? 'bg-amber-500 text-stone-950 font-medium rounded-tr-none'
-                        : 'bg-stone-800/90 text-stone-200 border border-white/10 rounded-tl-none space-y-2'
-                    }`}
-                  >
-                    {/* Message Body */}
-                    <div className="whitespace-pre-line">
-                      {msg.text}
-                    </div>
+                  <div className={`flex items-end gap-2 max-w-[88%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                    {!isUser && (
+                      <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-amber-400/40 self-end mb-1">
+                        {agentAvatar ? (
+                          <img src={agentAvatar} alt={agentName} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                            <Bot className="w-3.5 h-3.5 text-amber-400" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div
+                      className={`p-3.5 rounded-2xl shadow-md ${
+                        isUser
+                          ? 'bg-amber-500 text-stone-950 font-medium rounded-tr-none'
+                          : 'bg-stone-800/90 text-stone-200 border border-white/10 rounded-tl-none space-y-2'
+                      }`}
+                    >
+                      {/* Message Body */}
+                      <div className="whitespace-pre-line">
+                        {msg.text}
+                      </div>
 
                     {/* 🌟 PRE-RESERVATION CARD IF CREATED 🌟 */}
                     {msg.pre_reservation && (
@@ -244,6 +290,7 @@ export default function AIChatWidget() {
                         </a>
                       </div>
                     )}
+                  </div>
                   </div>
 
                   <span className="text-[9px] text-stone-500 mt-1 px-1">

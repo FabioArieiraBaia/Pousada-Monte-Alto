@@ -179,6 +179,7 @@ export const api = {
   },
 
   // AI Concierge Chat & Leads
+  getPublicAIConfig: () => request('/ai-config'),
   sendMessageToAI: (messages, leadContext) => request('/chat', {
     method: 'POST',
     body: JSON.stringify({ messages, lead: leadContext })

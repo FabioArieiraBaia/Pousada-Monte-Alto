@@ -219,15 +219,24 @@ function initDatabase($pdo) {
     $pdo->exec("CREATE TABLE IF NOT EXISTS ai_settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         agent_name TEXT DEFAULT 'Marina - Concierge Monte Alto',
+        agent_avatar TEXT DEFAULT '',
         is_active INTEGER DEFAULT 1,
         system_instructions TEXT,
         welcome_message_pt TEXT DEFAULT 'Olá! Bem-vindo à Pousada Monte Alto em Arraial do Cabo. Como posso ajudar com sua hospedagem pé na areia hoje?',
         welcome_message_en TEXT DEFAULT 'Hello! Welcome to Pousada Monte Alto in Arraial do Cabo. How can I help with your beachfront stay today?',
-        welcome_message_es TEXT DEFAULT '¡Hola! Bienvenido a Posada Monte Alto en Arraial do Cabo. ¿Cómo puedo ayudarte con tu estadía frente al mar hoy?',
+        welcome_message_es TEXT DEFAULT '¡Hola! Bienvenido a Posada Monte Alto en Arraial do Cabo. ¿Cómo posso ayudarte com tu estadía frente al mar hoy?',
         api_keys_json TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
+
+    // Auto-migration for agent_avatar column
+    try {
+        $aiCols = $pdo->query("PRAGMA table_info(ai_settings)")->fetchAll(PDO::FETCH_COLUMN, 1);
+        if (!in_array('agent_avatar', $aiCols)) {
+            $pdo->exec("ALTER TABLE ai_settings ADD COLUMN agent_avatar TEXT DEFAULT ''");
+        }
+    } catch (Exception $e) {}
 
     // Seed default ai_settings row if empty
     try {

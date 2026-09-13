@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Bot, Users, MessageSquare, Phone, Mail, Calendar, 
   CheckCircle2, AlertCircle, Save, ExternalLink, RefreshCw, 
-  Key, Settings, Sparkles, Filter, Clock, Eye, Trash2
+  Key, Settings, Sparkles, Filter, Clock, Eye, Trash2,
+  Upload, Image as ImageIcon
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -18,6 +19,7 @@ export default function AdminAIChatPage() {
   // Settings state
   const [aiSettings, setAiSettings] = useState({
     agent_name: 'Marina - Concierge Monte Alto',
+    agent_avatar: '',
     is_active: 1,
     system_instructions: '',
     welcome_message_pt: '',
@@ -29,6 +31,31 @@ export default function AdminAIChatPage() {
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const presetAvatars = [
+    { name: 'Marina (Concierge)', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80' },
+    { name: 'Camila (Recepção)', url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=300&q=80' },
+    { name: 'Lucas (Host Praiano)', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80' },
+    { name: 'Sofia (Atendimento)', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80' }
+  ];
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const res = await api.uploadImage(file);
+      if (res.url) {
+        setAiSettings(prev => ({ ...prev, agent_avatar: res.url }));
+      }
+    } catch (err) {
+      alert('Erro ao fazer upload do avatar: ' + err.message);
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
 
   useEffect(() => {
     loadLeads();
@@ -127,7 +154,7 @@ export default function AdminAIChatPage() {
         <div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 flex items-center gap-2.5">
             <Bot className="w-8 h-8 text-amber-600" />
-            <span>Concierge IA & Gestão de Leads (Gemini 2.5 Flash)</span>
+            <span>Concierge IA & Gestão de Leads</span>
           </h1>
           <p className="text-stone-500 text-xs sm:text-sm mt-0.5">
             Gerencie os leads captados pelo agente virtual, visualize pré-reservas e configure a inteligência de vendas.
@@ -361,7 +388,7 @@ export default function AdminAIChatPage() {
                             <p className="whitespace-pre-line">{m.text || m.content}</p>
                           </div>
                           <span className="text-[9px] text-stone-400 mt-0.5 px-1">
-                            {isUser ? 'Cliente' : 'Marina IA'}
+                            {isUser ? 'Cliente' : (aiSettings.agent_name || 'Concierge IA')}
                           </span>
                         </div>
                       );
@@ -410,7 +437,7 @@ export default function AdminAIChatPage() {
                   <span>Status do Atendimento Inteligente</span>
                 </h3>
                 <p className="text-stone-500 text-xs mt-0.5">
-                  Ative ou desative o assistente virtual com Gemini 2.5 Flash no site.
+                  Ative ou desative o assistente virtual inteligente no site.
                 </p>
               </div>
 
@@ -428,30 +455,125 @@ export default function AdminAIChatPage() {
               </label>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
-                  Nome da Atendente / Concierge
-                </label>
-                <input
-                  type="text"
-                  value={aiSettings.agent_name || ''}
-                  onChange={(e) => setAiSettings({ ...aiSettings, agent_name: e.target.value })}
-                  placeholder="Ex: Marina - Concierge Monte Alto"
-                  className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none focus:border-amber-500 font-bold"
-                />
+            <div>
+              <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
+                Nome da Atendente / Concierge
+              </label>
+              <input
+                type="text"
+                value={aiSettings.agent_name || ''}
+                onChange={(e) => setAiSettings({ ...aiSettings, agent_name: e.target.value })}
+                placeholder="Ex: Marina - Concierge Monte Alto"
+                className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none focus:border-amber-500 font-bold"
+              />
+            </div>
+          </div>
+
+          {/* Avatar & Identidade Visual do Agente */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-200/80 space-y-6">
+            <div>
+              <h3 className="font-serif text-lg font-bold text-stone-900 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-amber-600" />
+                <span>Foto do Avatar do Agente</span>
+              </h3>
+              <p className="text-stone-500 text-xs mt-0.5">
+                Escolha a imagem que aparecerá no botão flutuante e no cabeçalho do chat de atendimento.
+              </p>
+            </div>
+
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-6 p-4 bg-stone-50 rounded-2xl border border-stone-200">
+              {/* Preview */}
+              <div className="relative shrink-0">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-amber-500 shadow-md bg-stone-800 flex items-center justify-center">
+                  {aiSettings.agent_avatar ? (
+                    <img 
+                      src={aiSettings.agent_avatar} 
+                      alt="Avatar Preview" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <Bot className="w-10 h-10 text-amber-400" />
+                  )}
+                </div>
+                <span className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow" />
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
-                  Modelo de Inteligência Ativo
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value="Google Gemini 2.5 Flash (Oficial com Raciocínio Embutido)"
-                  className="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50 font-bold text-amber-700"
-                />
+              <div className="space-y-3 flex-1 w-full">
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer shadow-sm transition-all flex items-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    <span>{uploadingAvatar ? 'Enviando foto...' : 'Fazer Upload de Foto'}</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleAvatarUpload} 
+                      className="hidden" 
+                      disabled={uploadingAvatar}
+                    />
+                  </label>
+
+                  {aiSettings.agent_avatar && (
+                    <button
+                      type="button"
+                      onClick={() => setAiSettings({ ...aiSettings, agent_avatar: '' })}
+                      className="bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Usar Ícone Padrão</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-stone-500 uppercase">
+                    Ou cole a URL direta de uma imagem:
+                  </label>
+                  <input
+                    type="url"
+                    value={aiSettings.agent_avatar || ''}
+                    onChange={(e) => setAiSettings({ ...aiSettings, agent_avatar: e.target.value })}
+                    placeholder="https://exemplo.com/foto-atendente.jpg"
+                    className="w-full text-xs p-2.5 rounded-xl border border-stone-300 bg-white font-mono text-stone-700 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Avatares Sugeridos */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold text-stone-500 uppercase">
+                Avatares Sugeridos (1-Clique para Escolher):
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {presetAvatars.map((preset, idx) => {
+                  const isSelected = aiSettings.agent_avatar === preset.url;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setAiSettings({ ...aiSettings, agent_avatar: preset.url })}
+                      className={`p-2.5 rounded-2xl border flex items-center gap-3 transition-all text-left cursor-pointer ${
+                        isSelected 
+                          ? 'border-amber-500 bg-amber-50/70 ring-2 ring-amber-400' 
+                          : 'border-stone-200 bg-stone-50/50 hover:bg-stone-100 hover:border-stone-300'
+                      }`}
+                    >
+                      <img 
+                        src={preset.url} 
+                        alt={preset.name} 
+                        className="w-10 h-10 rounded-full object-cover border border-stone-200 shrink-0" 
+                      />
+                      <div className="min-w-0 flex-1">
+                        <span className="block text-xs font-bold text-stone-800 truncate">
+                          {preset.name}
+                        </span>
+                        <span className="block text-[10px] text-stone-500">
+                          {isSelected ? '✓ Selecionado' : 'Clique para usar'}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -477,12 +599,12 @@ export default function AdminAIChatPage() {
             />
           </div>
 
-          {/* Gerenciamento de Chaves de API Gemini */}
+          {/* Gerenciamento de Chaves de API */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-200/80 space-y-4">
             <div>
               <h3 className="font-serif text-lg font-bold text-stone-900 flex items-center gap-2">
                 <Key className="w-5 h-5 text-amber-600" />
-                <span>Chaves de API do Google Gemini (Rotação Automática com Failover)</span>
+                <span>Chaves de Ativação do Sistema (Rotação Automática com Failover)</span>
               </h3>
               <p className="text-stone-500 text-xs mt-0.5">
                 Insira uma chave por linha. O sistema distribui as mensagens entre as chaves e, caso alguma atinja o limite temporário de requisições por minuto, pula automaticamente para a próxima.

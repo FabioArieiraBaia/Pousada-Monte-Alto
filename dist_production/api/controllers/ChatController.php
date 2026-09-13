@@ -158,6 +158,24 @@ class ChatController {
     }
 
     /**
+     * Public endpoint: GET /api/ai-config
+     */
+    public static function getPublicConfig($pdo) {
+        $config = self::getAiSettingsFromDb($pdo);
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'is_active' => $config['is_active'],
+                'agent_name' => $config['agent_name'],
+                'agent_avatar' => $config['agent_avatar'] ?? '',
+                'welcome_message_pt' => $config['welcome_message_pt'],
+                'welcome_message_en' => $config['welcome_message_en'],
+                'welcome_message_es' => $config['welcome_message_es']
+            ]
+        ]);
+    }
+
+    /**
      * Admin: GET /api/ai-settings
      */
     public static function getAiSettings($pdo) {
@@ -180,6 +198,7 @@ class ChatController {
         $stmt = $pdo->prepare("
             UPDATE ai_settings 
             SET agent_name = COALESCE(?, agent_name),
+                agent_avatar = ?,
                 is_active = COALESCE(?, is_active),
                 system_instructions = ?,
                 welcome_message_pt = COALESCE(?, welcome_message_pt),
@@ -192,6 +211,7 @@ class ChatController {
 
         $stmt->execute([
             $data['agent_name'] ?? null,
+            isset($data['agent_avatar']) ? $data['agent_avatar'] : '',
             isset($data['is_active']) ? (int)$data['is_active'] : null,
             $data['system_instructions'] ?? null,
             $data['welcome_message_pt'] ?? null,
@@ -211,6 +231,7 @@ class ChatController {
         if (!$row) {
             return [
                 'agent_name' => 'Marina - Concierge Monte Alto',
+                'agent_avatar' => '',
                 'is_active' => 1,
                 'system_instructions' => '',
                 'welcome_message_pt' => 'Olá! Bem-vindo à Pousada Monte Alto em Arraial do Cabo. Como posso ajudar com sua hospedagem pé na areia hoje?',
@@ -227,6 +248,7 @@ class ChatController {
 
         return [
             'agent_name' => $row['agent_name'] ?? 'Marina - Concierge Monte Alto',
+            'agent_avatar' => $row['agent_avatar'] ?? '',
             'is_active' => (bool)$row['is_active'],
             'system_instructions' => $row['system_instructions'] ?? '',
             'welcome_message_pt' => $row['welcome_message_pt'],
@@ -432,7 +454,7 @@ PROMPT;
                 $checkOut = $actionData['check_out'] ?? date('Y-m-d', strtotime('+10 days'));
                 $guests = (int)($actionData['guests'] ?? 2);
                 $hasPets = (int)($actionData['has_pets'] ?? 0);
-                $notes = $actionData['notes'] ?? 'Lead e Pré-reserva captados pelo Concierge IA Gemini 2.5 Flash';
+                $notes = $actionData['notes'] ?? 'Lead e Pré-reserva captados pelo Concierge IA';
 
                 // Calculate exact stay price
                 $priceCalc = self::calculateStayPrice($pdo, $accId, $checkIn, $checkOut);
