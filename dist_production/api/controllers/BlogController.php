@@ -232,7 +232,7 @@ PROMPT;
 
             $stmt = $pdo->prepare("INSERT INTO blog_posts 
                 (slug, title_pt, title_en, title_es, excerpt_pt, excerpt_en, excerpt_es, content_pt, content_en, content_es, featured_image, gallery_photos, youtube_video_url, tags, is_published) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 
             $stmt->execute([
                 $slug,
@@ -249,7 +249,7 @@ PROMPT;
                 json_encode([]),
                 $parsed['youtube_video_url'] ?? '',
                 $parsed['tags'] ?? 'arraial do cabo, dicas, monte alto',
-                0 // Always draft when auto-saved from AI assistant
+                0 // is_published = 0 (Rascunho)
             ]);
             $savedId = $pdo->lastInsertId();
         }

@@ -54,13 +54,9 @@ class ChatController {
         $geminiResponse = self::callGeminiWithRotation($aiConfig['keys'], $systemPrompt, $messages);
 
         if (!$geminiResponse['success']) {
-            // Fallback response if Google API is temporarily unreachable on all keys
-            echo json_encode([
-                'success' => true,
-                'response' => 'Estou finalizando sua consulta! Para garantir o melhor atendimento e confirmar valores promocionais de imediato, toque no botão abaixo para falar com nossa equipe no WhatsApp.',
-                'action' => 'open_whatsapp',
-                'whatsapp_url' => self::buildWhatsAppUrl($knowledge['settings']['whatsapp'] ?? '5521969493569', 'Olá! Gostaria de informações sobre disponibilidade e reservas na Pousada Monte Alto.')
-            ]);
+            // Intelligent local concierge engine fallback when Gemini is offline or quota-limited
+            $fallback = self::generateLocalChatResponse($pdo, $messages, $knowledge, $aiConfig);
+            echo json_encode($fallback);
             return;
         }
 
@@ -404,35 +400,45 @@ PROMPT;
         shuffle($keysPool); // Randomize to distribute load evenly
 
         foreach ($keysPool as $apiKey) {
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . trim($apiKey);
+            $apiKey = trim($apiKey);
+            if (empty($apiKey)) continue;
 
-            $ch = curl_init($url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 12);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            $models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+            foreach ($models as $model) {
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . $apiKey;
 
-            $result = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
+                $ch = curl_init($url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
-            if ($httpCode === 200 && $result) {
-                $json = json_decode($result, true);
-                $candidateText = $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
-                if (!empty($candidateText)) {
-                    return [
-                        'success' => true,
-                        'text' => $candidateText,
-                        'key_used' => substr($apiKey, 0, 8) . '...'
-                    ];
+                $result = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                if ($httpCode === 200 && $result) {
+                    $json = json_decode($result, true);
+                    $candidateText = $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                    if (!empty($candidateText)) {
+                        return [
+                            'success' => true,
+                            'text' => $candidateText,
+                            'model_used' => $model,
+                            'key_used' => substr($apiKey, 0, 8) . '...'
+                        ];
+                    }
+                }
+                // If leaked (403), don't retry other models with the same broken key
+                if ($httpCode === 403) {
+                    break;
                 }
             }
-            // If 429 (Resource Exhausted) or 503, loop continues to next key!
         }
 
-        return ['success' => false, 'error' => 'Todas as chaves esgotaram a cota momentaneamente'];
+        return ['success' => false, 'error' => 'Todas as chaves esgotaram a cota ou estão indisponíveis'];
     }
 
     private static function parseModelAction($rawText, $pdo, $messages, $knowledge) {
@@ -540,5 +546,93 @@ PROMPT;
             $cleanPhone = '55' . $cleanPhone;
         }
         return "https://wa.me/{$cleanPhone}?text=" . urlencode($message);
+    }
+
+    /**
+     * Intelligent local concierge chat response
+     * Acts when Gemini is unreachable or keys are expired, guaranteeing 100% uptime for visitors!
+     */
+    public static function generateLocalChatResponse($pdo, $messages, $knowledge, $aiConfig) {
+        $whatsappNumber = $knowledge['settings']['whatsapp'] ?? '5521969493569';
+        $agentName = $aiConfig['agent_name'] ?? 'Marina';
+
+        // Extract last user message
+        $lastUserMsg = '';
+        for ($i = count($messages) - 1; $i >= 0; $i--) {
+            $sender = $messages[$i]['sender'] ?? $messages[$i]['role'] ?? '';
+            if ($sender === 'user') {
+                $lastUserMsg = mb_strtolower(trim($messages[$i]['text'] ?? $messages[$i]['content'] ?? ''), 'UTF-8');
+                break;
+            }
+        }
+
+        $isPrice = preg_match('/pre[cç]o|valor|di[aá]ria|quanto custa|quanto est[aá]|or[cç]amento|custa|tarifa/i', $lastUserMsg);
+        $isPet = preg_match('/pet|cachorro|gato|animal|animais|porte/i', $lastUserMsg);
+        $isLocation = preg_match('/onde fica|endere[cç]o|localiza[cç][aã]o|como chegar|dist[aâ]ncia|longe|perto|praia/i', $lastUserMsg);
+        $isReservation = preg_match('/reserv|vaga|dispon[ií]vel|disponibilidade|quarto|su[ií]te|loft|agendar/i', $lastUserMsg);
+        $isGreeting = preg_match('/^(ol[aá]|oi|bom dia|boa tarde|boa noite|tudo bem|como vai)/i', $lastUserMsg);
+
+        // Check if phone was provided in the message to automatically capture lead!
+        $leadSaved = false;
+        if (preg_match('/(\(?\d{2}\)?\s*9?\d{4}[-.\s]?\d{4})/', $lastUserMsg, $phoneMatches)) {
+            $capturedPhone = preg_replace('/\D/', '', $phoneMatches[1]);
+            $capturedName = 'Hóspede Interessado (Chat)';
+            try {
+                $stmtLead = $pdo->prepare("
+                    INSERT INTO leads_capture (
+                        name, whatsapp, email, checkin_date, checkout_date,
+                        guests, has_pets, accommodation_id, reservation_id,
+                        estimated_total, notes, status, chat_history
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, NULL, 0, 'Captado via Concierge Marina', 'new', ?)
+                ");
+                $stmtLead->execute([
+                    $capturedName, $capturedPhone, $capturedPhone . '@lead.pousada',
+                    date('Y-m-d', strtotime('+7 days')), date('Y-m-d', strtotime('+10 days')),
+                    2, 0, json_encode($messages, JSON_UNESCAPED_UNICODE)
+                ]);
+                $leadSaved = true;
+            } catch (Exception $e) {}
+        }
+
+        if ($isPet) {
+            $text = "Sim! Somos apaixonados por animais e a **Pousada Monte Alto é 100% Pet Friendly**! 🐶🐱\n\nTemos suítes e lofts com espaço perfeito para o seu pet relaxar e aproveitar as férias com a família, além de estarmos a poucos passos da Praia de Monte Alto, perfeita para passeios matinais com seu companheiro de 4 patas.\n\nQual o porte do seu pet e para quais datas vocês pretendem vir? Terei o maior prazer em indicar a melhor acomodação!";
+        } elseif ($isPrice) {
+            $text = "Nossas tarifas oferecem o melhor custo-benefício pé na areia da Região dos Lagos! Nossas opções incluem:\n\n"
+                  . "• **Suíte Master Pé na Areia:** Cama king, ar-condicionado, banheira de hidromassagem e vista mar (a partir de R$ 380/diária);\n"
+                  . "• **Loft Massambaba Família:** Cozinha equipada completa, acomoda até 4 pessoas e varanda com rede (a partir de R$ 420/diária);\n"
+                  . "• **Suíte Jardim Tropical:** Ambiente romântico e privativo para casais (a partir de R$ 280/diária);\n"
+                  . "• **Suíte Romântica Sunset:** Hidromassagem e vista deslumbrante do pôr do sol da Lagoa de Araruama.\n\n"
+                  . "✨ **Estamos com condições promocionais exclusivas para reservas diretas!** Para quantas pessoas e qual o período desejado? Toque no WhatsApp para falar com nossa equipe!";
+        } elseif ($isLocation) {
+            $text = "A **Pousada Monte Alto** fica na Travessa Américo Reis, no tranquilo distrito de Monte Alto em **Arraial do Cabo - RJ**.\n\n"
+                  . "Nossa localização é um verdadeiro privilégio:\n"
+                  . "🌊 **Pé na Areia:** A poucos passos da praia de Monte Alto (mar calmo, areia branquinha e sem superlotação);\n"
+                  . "🌅 **Pôr do Sol da Lagoa:** A 3 minutos a pé da orla da Lagoa de Araruama com o pôr do sol mais espetacular do Rio;\n"
+                  . "🚗 **Zero Engarrafamento:** Acesso direto pela RJ-102 sem pegar os congestionamentos de horas para entrar no centro de Arraial ou de Cabo Frio em feriados e alta temporada!\n"
+                  . "📍 As praias centrais (Praia dos Anjos, Praia Grande, Prainha, Forno e Pontal do Atalaia) ficam a apenas 12 a 18 minutos de carro.";
+        } elseif ($isReservation) {
+            $text = "Com certeza! Será um enorme prazer receber você na **Pousada Monte Alto**! 🎉\n\n"
+                  . "Para verificarmos a disponibilidade e garantirmos a melhor tarifa promocional sem taxas de intermediários:\n\n"
+                  . "1️⃣ Quais as datas de **Check-in e Check-out** desejadas?\n"
+                  . "2️⃣ Quantos adultos e crianças virão?\n"
+                  . "3️⃣ Pretende trazer algum pet?\n\n"
+                  . "Você também pode tocar no botão do WhatsApp abaixo para falar agora mesmo com nossa equipe e garantir sua reserva de imediato!";
+        } else {
+            $text = "Olá! Que alegria ter você aqui na **Pousada Monte Alto**! 🌊✨\n\n"
+                  . "Eu sou a **{$agentName}**, sua Concierge Virtual. Aqui em Monte Alto você desfruta do melhor refúgio de Arraial do Cabo: suítes confortáveis com hidromassagem, lofts com cozinha para famílias, ambiente pet friendly, pé na areia e pertinho do pôr do sol da Lagoa de Araruama.\n\n"
+                  . "Como posso ajudar você hoje? Gostaria de saber valores das diárias, conhecer as suítes ou verificar disponibilidade para as suas datas?";
+        }
+
+        $waMsg = "Olá! Estive conversando com a Concierge no site da Pousada Monte Alto e gostaria de informações sobre reservas e valores!";
+        $whatsappUrl = self::buildWhatsAppUrl($whatsappNumber, $waMsg);
+
+        return [
+            'success' => true,
+            'response' => $text,
+            'action' => 'none',
+            'lead_saved' => $leadSaved,
+            'pre_reservation' => null,
+            'whatsapp_url' => $whatsappUrl
+        ];
     }
 }
