@@ -207,6 +207,10 @@ try {
         BlogController::create($pdo);
         exit();
     }
+    if ($path === '/blog/generate-ai' && $method === 'POST') {
+        BlogController::generateWithAi($pdo);
+        exit();
+    }
     if (preg_match('#^/blog/(\d+)$#', $path, $m)) {
         if ($method === 'PUT') {
             BlogController::update($pdo, $m[1]);

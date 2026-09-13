@@ -139,6 +139,10 @@ export const api = {
   deleteBlogPost: (id) => request(`/blog/${id}`, {
     method: 'DELETE'
   }),
+  generateBlogWithAi: (data) => request('/blog/generate-ai', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
 
   // Settings
   getSettings: () => request('/settings'),

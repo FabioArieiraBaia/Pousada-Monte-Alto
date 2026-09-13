@@ -3,7 +3,7 @@ import {
   BookOpen, Plus, Edit2, Trash2, Video, 
   Image as ImageIcon, Calendar, X, Check, ArrowRight,
   Upload, Star, Loader2, Bold, Italic, Heading2,
-  List, Quote, Link as LinkIcon, Sparkles
+  List, Quote, Link as LinkIcon, Sparkles, Bot, Wand2, RefreshCw
 } from 'lucide-react';
 import YouTubeEmbed from '../../components/YouTubeEmbed';
 import { api } from '../../services/api';
@@ -17,6 +17,14 @@ export default function AdminBlogPage() {
   const [activeLang, setActiveLang] = useState('pt'); // 'pt' | 'en' | 'es'
   const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'published' | 'draft' | 'unlisted'
   const [searchQuery, setSearchQuery] = useState('');
+
+  // AI Writer Agent states
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiInstructions, setAiInstructions] = useState('');
+  const [aiAudience, setAiAudience] = useState('Turistas, casais e famílias buscando tranquilidade em Arraial do Cabo');
+  const [aiAutoSaveDraft, setAiAutoSaveDraft] = useState(true);
 
   // Upload states
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -235,6 +243,62 @@ export default function AdminBlogPage() {
     insertFormatting(htmlImg);
   };
 
+  // AI Generator Handler
+  const handleGenerateAi = async (e) => {
+    e?.preventDefault();
+    if (!aiTopic.trim()) {
+      alert('Por favor, informe o tema ou título desejado.');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const res = await api.generateBlogWithAi({
+        topic: aiTopic,
+        instructions: aiInstructions,
+        target_audience: aiAudience,
+        save_draft: aiAutoSaveDraft
+      });
+
+      const generated = res.data;
+      if (!generated) throw new Error('Não foi possível obter os dados da matéria');
+
+      if (aiAutoSaveDraft) {
+        alert('🎉 Matéria gerada com sucesso e salva como RASCUNHO!\nVocê pode revisá-la ou publicá-la quando desejar.');
+        setAiModalOpen(false);
+        setAiTopic('');
+        setAiInstructions('');
+        loadPosts();
+      } else {
+        // Populate current editor modal for live review
+        setEditingPost(null);
+        setForm({
+          id: null,
+          title_pt: generated.title_pt || '',
+          title_en: generated.title_en || '',
+          title_es: generated.title_es || '',
+          excerpt_pt: generated.excerpt_pt || '',
+          excerpt_en: generated.excerpt_en || '',
+          excerpt_es: generated.excerpt_es || '',
+          content_pt: generated.content_pt || '',
+          content_en: generated.content_en || '',
+          content_es: generated.content_es || '',
+          featured_image: generated.featured_image || '',
+          gallery_photos: [],
+          youtube_video_url: '',
+          tags: generated.tags || 'arraial do cabo, turismo, monte alto',
+          is_published: 0 // Default to draft for safety
+        });
+        setAiModalOpen(false);
+        setModalOpen(true);
+      }
+    } catch (err) {
+      alert(err.message || 'Erro ao gerar matéria com IA. Tente novamente.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleSavePost = async (e) => {
     e.preventDefault();
     if (!form.title_pt.trim()) {
@@ -289,13 +353,25 @@ export default function AdminBlogPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => handleOpenModal()}
-          className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold px-4 py-2.5 rounded-2xl text-xs flex items-center gap-1.5 shadow-sm transition-all self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Escrever Novo Artigo</span>
-        </button>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+          {/* Botão Agente de IA para Escrever Artigo */}
+          <button
+            onClick={() => setAiModalOpen(true)}
+            className="bg-stone-900 hover:bg-stone-800 text-amber-400 border border-amber-500/40 font-bold px-4 py-2.5 rounded-2xl text-xs flex items-center gap-2 shadow-sm transition-all hover:scale-105"
+          >
+            <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+            <span>Agente Redator IA (SEO)</span>
+          </button>
+
+          {/* Escrever Manualmente */}
+          <button
+            onClick={() => handleOpenModal()}
+            className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold px-4 py-2.5 rounded-2xl text-xs flex items-center gap-1.5 shadow-sm transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Escrever Novo Artigo</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Tabs & Search Bar */}
@@ -1016,15 +1092,28 @@ export default function AdminBlogPage() {
                 </div>
               </div>
 
-              {/* Modal Bottom Actions */}
               <div className="flex items-center justify-between pt-4 border-t border-stone-200">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-5 py-2.5 rounded-xl text-xs transition-colors"
-                >
-                  Cancelar
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-5 py-2.5 rounded-xl text-xs transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAiTopic(form.title_pt || '');
+                      setAiModalOpen(true);
+                    }}
+                    className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors"
+                    title="Pedir ajuda ao Agente de IA para escrever ou expandir o artigo"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Auxílio de IA (SEO)</span>
+                  </button>
+                </div>
 
                 <button
                   type="submit"
@@ -1040,6 +1129,192 @@ export default function AdminBlogPage() {
                     <>
                       <Check className="w-4 h-4" />
                       <span>{editingPost ? 'Salvar Alterações' : 'Publicar Artigo'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🤖 MODAL DO AGENTE DE IA REDATOR DE BLOG (SEO & ALTA CONVERSÃO) 🤖 */}
+      {aiModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden border border-amber-200/80 my-6 animate-in fade-in zoom-in-95 duration-200">
+            {/* AI Modal Header */}
+            <div className="bg-stone-900 text-white p-6 flex items-center justify-between border-b border-amber-500/20">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center shadow-md">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest block">
+                    Agente de Inteligência Artificial
+                  </span>
+                  <h3 className="font-serif text-xl font-bold text-white">
+                    Redator SEO de Artigos de Viagem
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => !aiLoading && setAiModalOpen(false)}
+                disabled={aiLoading}
+                className="p-1.5 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white transition-colors disabled:opacity-40"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* AI Modal Body */}
+            <form onSubmit={handleGenerateAi} className="p-6 space-y-4">
+              
+              {/* Sugestões Rápidas de Temas com 1 Clique */}
+              <div>
+                <span className="text-[10px] font-bold text-stone-500 uppercase block mb-1.5">
+                  Sugestões Rápidas de Temas em Alta:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'As Melhores Praias Secretas de Arraial do Cabo',
+                    'Passeio de Barco: Como Escolher o Melhor Roteiro',
+                    'Por que Monte Alto é o Melhor Refúgio da Região dos Lagos',
+                    'Dicas para Viajar com Cachorro (Pet Friendly) em Arraial',
+                    'Pôr do Sol na Lagoa de Araruama: Onde Assistir'
+                  ].map((sug, sIdx) => (
+                    <button
+                      key={sIdx}
+                      type="button"
+                      disabled={aiLoading}
+                      onClick={() => setAiTopic(sug)}
+                      className="text-[11px] bg-sand-50 hover:bg-amber-100 hover:text-stone-900 text-stone-700 font-medium px-2.5 py-1 rounded-lg border border-stone-200 transition-colors text-left"
+                    >
+                      {sug}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tema ou Título Principal */}
+              <div>
+                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">
+                  Tema ou Título Desejado para a Matéria *
+                </label>
+                <input
+                  type="text"
+                  required
+                  disabled={aiLoading}
+                  value={aiTopic}
+                  onChange={(e) => setAiTopic(e.target.value)}
+                  placeholder="Ex: Roteiro Completo de 3 Dias em Arraial do Cabo e Monte Alto"
+                  className="w-full text-xs sm:text-sm p-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none font-bold text-stone-900"
+                />
+              </div>
+
+              {/* Instruções Opcionais */}
+              <div>
+                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">
+                  Instruções Especiais ou Foco Desejado (Opcional)
+                </label>
+                <textarea
+                  rows={2}
+                  disabled={aiLoading}
+                  value={aiInstructions}
+                  onChange={(e) => setAiInstructions(e.target.value)}
+                  placeholder="Ex: Mencione dicas para casais, mencione a proximidade da praia e lagoa, sugira o restaurante X..."
+                  className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-stone-700"
+                />
+              </div>
+
+              {/* Público-Alvo */}
+              <div>
+                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">
+                  Público-Alvo
+                </label>
+                <select
+                  disabled={aiLoading}
+                  value={aiAudience}
+                  onChange={(e) => setAiAudience(e.target.value)}
+                  className="w-full text-xs p-2.5 rounded-xl border border-stone-300 bg-white focus:outline-none"
+                >
+                  <option value="Turistas, casais e famílias buscando tranquilidade em Arraial do Cabo">
+                    Geral: Turistas, casais e famílias buscando tranquilidade
+                  </option>
+                  <option value="Casais em viagem romântica ou lua de mel">
+                    Romântico: Casais em viagem romântica ou lua de mel
+                  </option>
+                  <option value="Famílias com crianças procurando conforto e praticidade">
+                    Família: Famílias com crianças procurando lofts com cozinha
+                  </option>
+                  <option value="Tutores de pets buscando pousada acolhedora pet friendly">
+                    Pet Friendly: Tutores de cães e gatos
+                  </option>
+                  <option value="Praticantes de mergulho, esportes náuticos e kitesurf">
+                    Aventura & Esportes: Mergulho e kitesurf na Lagoa de Araruama
+                  </option>
+                </select>
+              </div>
+
+              {/* Opção de Salvar Automático como Rascunho */}
+              <div className="p-3.5 bg-amber-50/80 rounded-2xl border border-amber-200">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    disabled={aiLoading}
+                    checked={aiAutoSaveDraft}
+                    onChange={(e) => setAiAutoSaveDraft(e.target.checked)}
+                    className="w-4 h-4 mt-0.5 text-amber-600 rounded border-stone-300 focus:ring-amber-500 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-stone-900 block">
+                      Deixar salvo como Rascunho automaticamente
+                    </span>
+                    <span className="text-[11px] text-stone-500">
+                      O artigo será gravado no banco de dados com status <strong>Rascunho (não visível ao público)</strong> para você revisar e publicar quando quiser.
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* AI Processing Status */}
+              {aiLoading && (
+                <div className="p-4 bg-stone-900 rounded-2xl text-white space-y-2 text-center animate-pulse">
+                  <div className="w-8 h-8 border-3 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto" />
+                  <div className="text-xs font-bold text-amber-400">
+                    O Agente de IA está escrevendo o artigo completo...
+                  </div>
+                  <div className="text-[10px] text-stone-300">
+                    Gerando títulos, introdução cativante, subtítulos H3, dicas práticas de Arraial do Cabo e tradução simultânea em 3 idiomas.
+                  </div>
+                </div>
+              )}
+
+              {/* AI Modal Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-100">
+                <button
+                  type="button"
+                  disabled={aiLoading}
+                  onClick={() => setAiModalOpen(false)}
+                  className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={aiLoading}
+                  className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-black px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider flex items-center gap-2 shadow-md hover:scale-105 transition-all disabled:opacity-50"
+                >
+                  {aiLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Escrevendo Matéria...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-4 h-4" />
+                      <span>Gerar Artigo com IA</span>
                     </>
                   )}
                 </button>

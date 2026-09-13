@@ -225,9 +225,10 @@ class ChatController {
 
     // --- PRIVATE HELPERS ---
 
-    private static function getAiSettingsFromDb($pdo) {
-        $stmt = $pdo->query("SELECT * FROM ai_settings WHERE id = 1");
-        $row = $stmt->fetch();
+    public static function getAiSettingsFromDb($pdo) {
+        $stmt = $pdo->query("SELECT * FROM ai_settings LIMIT 1");
+        $row = $stmt ? $stmt->fetch() : null;
+
         if (!$row) {
             return [
                 'agent_name' => 'Marina - Concierge Monte Alto',
@@ -364,7 +365,7 @@ PROMPT;
         return $prompt;
     }
 
-    private static function callGeminiWithRotation($keys, $systemPrompt, $messages) {
+    public static function callGeminiWithRotation($keys, $systemPrompt, $messages) {
         // Build Gemini conversation contents
         $contents = [];
 
