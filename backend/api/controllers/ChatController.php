@@ -365,7 +365,7 @@ PROMPT;
         return $prompt;
     }
 
-    public static function callGeminiWithRotation($keys, $systemPrompt, $messages) {
+    public static function callGeminiWithRotation($keys, $systemPrompt, $messages, $customGenConfig = []) {
         // Build Gemini conversation contents
         $contents = [];
 
@@ -384,16 +384,19 @@ PROMPT;
             return ['success' => false, 'error' => 'No messages'];
         }
 
+        $defaultGenConfig = [
+            'temperature' => 0.7,
+            'topP' => 0.95,
+            'maxOutputTokens' => 1024
+        ];
+        $genConfig = array_merge($defaultGenConfig, $customGenConfig);
+
         $payload = json_encode([
             'systemInstruction' => [
                 'parts' => [['text' => $systemPrompt]]
             ],
             'contents' => $contents,
-            'generationConfig' => [
-                'temperature' => 0.7,
-                'topP' => 0.95,
-                'maxOutputTokens' => 1024
-            ]
+            'generationConfig' => $genConfig
         ]);
 
         // Shuffle or iterate keys for rotation with failover
