@@ -642,10 +642,10 @@ export default function AdminBlogPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold text-stone-400 uppercase shrink-0">Ou URL direta:</span>
                       <input
-                        type="url"
+                        type="text"
                         value={form.featured_image}
                         onChange={(e) => setForm({ ...form, featured_image: e.target.value })}
-                        placeholder="https://images.unsplash.com/..."
+                        placeholder="https://images.unsplash.com/... ou caminho local da foto"
                         className="w-full text-xs p-2 rounded-xl border border-stone-300 focus:outline-none"
                       />
                     </div>
@@ -708,10 +708,10 @@ export default function AdminBlogPage() {
                 {/* Adicionar por URL */}
                 <div className="flex gap-2">
                   <input
-                    type="url"
+                    type="text"
                     value={newGalleryUrl}
                     onChange={(e) => setNewGalleryUrl(e.target.value)}
-                    placeholder="Ou cole a URL de uma foto para a galeria..."
+                    placeholder="Ou cole a URL ou caminho de uma foto para a galeria..."
                     className="flex-1 text-xs p-2 rounded-xl border border-stone-300 focus:outline-none"
                   />
                   <button
@@ -780,7 +780,7 @@ export default function AdminBlogPage() {
                   Link de Vídeo no YouTube (Opcional)
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   value={form.youtube_video_url}
                   onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })}
                   placeholder="https://www.youtube.com/watch?v=..."

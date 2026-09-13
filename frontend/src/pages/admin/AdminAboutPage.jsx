@@ -434,10 +434,10 @@ export default function AdminAboutPage() {
                     Ou URL Direta da Imagem
                   </label>
                   <input
-                    type="url"
+                    type="text"
                     value={form.about_image_url || ''}
                     onChange={(e) => setForm({ ...form, about_image_url: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://images.unsplash.com/... ou caminho local"
                     className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none font-mono"
                   />
                 </div>

@@ -530,7 +530,7 @@ export default function AdminRoomsPage() {
                   Link do Vídeo no YouTube
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   value={form.youtube_video_url}
                   onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })}
                   placeholder="https://www.youtube.com/watch?v=..."
@@ -693,10 +693,10 @@ export default function AdminRoomsPage() {
                   </span>
                   <div className="flex gap-2">
                     <input
-                      type="url"
+                      type="text"
                       value={newPhotoUrl}
                       onChange={(e) => setNewPhotoUrl(e.target.value)}
-                      placeholder="https://exemplo.com/foto.jpg"
+                      placeholder="https://exemplo.com/foto.jpg ou caminho local"
                       className="flex-1 text-xs p-2.5 rounded-xl border border-stone-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                     <button

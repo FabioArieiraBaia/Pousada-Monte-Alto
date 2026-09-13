@@ -293,10 +293,10 @@ export default function AdminGalleryPage() {
                 </label>
                 
                 <input
-                  type="url"
+                  type="text"
                   value={form.image_url}
                   onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                  placeholder="https://images.unsplash.com/... ou cole a URL"
+                  placeholder="https://images.unsplash.com/... ou caminho local"
                   className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
 

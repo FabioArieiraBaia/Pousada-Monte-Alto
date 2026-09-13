@@ -354,10 +354,10 @@ export default function AdminAttractionsPage() {
                     Ou cole o link de uma imagem:
                   </label>
                   <input
-                    type="url"
+                    type="text"
                     value={form.image_url}
                     onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                    placeholder="https://exemplo.com/praia.jpg"
+                    placeholder="https://exemplo.com/praia.jpg ou caminho local"
                     className="w-full text-xs p-2.5 rounded-xl border border-stone-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
@@ -442,7 +442,7 @@ export default function AdminAttractionsPage() {
                   Link do Vídeo no YouTube (Tour da Praia)
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   value={form.youtube_video_url}
                   onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })}
                   placeholder="https://www.youtube.com/watch?v=..."
@@ -466,7 +466,7 @@ export default function AdminAttractionsPage() {
                   Link Personalizado de Rota Google Maps (Opcional)
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   value={form.maps_url}
                   onChange={(e) => setForm({ ...form, maps_url: e.target.value })}
                   placeholder="Deixe em branco para rota automática ou cole a URL do Google Maps"

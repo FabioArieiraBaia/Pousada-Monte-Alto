@@ -529,10 +529,10 @@ export default function AdminAIChatPage() {
                     Ou cole a URL direta de uma imagem:
                   </label>
                   <input
-                    type="url"
+                    type="text"
                     value={aiSettings.agent_avatar || ''}
                     onChange={(e) => setAiSettings({ ...aiSettings, agent_avatar: e.target.value })}
-                    placeholder="https://exemplo.com/foto-atendente.jpg"
+                    placeholder="https://exemplo.com/foto-atendente.jpg ou caminho local"
                     className="w-full text-xs p-2.5 rounded-xl border border-stone-300 bg-white font-mono text-stone-700 focus:outline-none focus:border-amber-500"
                   />
                 </div>
