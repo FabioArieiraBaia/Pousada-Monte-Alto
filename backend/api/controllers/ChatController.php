@@ -3,21 +3,7 @@
 
 class ChatController {
 
-    private static $defaultKeys = [
-        'AIzaSyCHGG9m1yJJy1ffn5OXnF4QtH4GkQU8sWo',
-        'AIzaSyDTq2Juy_-GBmUqUENkaMuEIT9pDaIpnyY',
-        'AIzaSyBVDPCS8_oMYVQQO0eHUysi7cSKzPMeD_Q',
-        'AIzaSyAW3_ob0bZSQ96GIpw3btCO_pihxSUynvg',
-        'AIzaSyB-V7bHPnrKtxZuOVLorob2bLsvscRWSSA',
-        'AIzaSyCDLzafLWD9P49plPqdvgjA2j3OfuWGreQ',
-        'AIzaSyDrxWGEeDTKI9Qb9wI5V-7PcVAC4suNTXM',
-        'AIzaSyBQRNLnzkpObcJAEipYpT9ghSlvB58f4Tg',
-        'AIzaSyDphR7H4w1_GkXcoxbZ9S0a_Nogf0Ama6E',
-        'AIzaSyDZFrvCFhMMlOAvIBIST0eTKT5XBC3sHrI',
-        'AIzaSyCW8D7QdaHCrGLwl087vJl34tHFw_IHof0',
-        'AIzaSyDBun_96_TZuoItLMkf9lSv7qvdkVmQGFo',
-        'AIzaSyDOnJLiyMNThtfghZ-u9CMRd9twQUYNdos'
-    ];
+    private static $defaultKeys = [];
 
     /**
      * Public chat endpoint: POST /api/chat
