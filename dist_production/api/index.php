@@ -18,6 +18,7 @@ require_once __DIR__ . '/controllers/GalleryController.php';
 require_once __DIR__ . '/controllers/AttractionsController.php';
 require_once __DIR__ . '/controllers/UploadController.php';
 require_once __DIR__ . '/controllers/ChatController.php';
+require_once __DIR__ . '/controllers/NotificationController.php';
 
 $pdo = getDatabaseConnection();
 
@@ -274,6 +275,62 @@ try {
     }
     if ($path === '/ai-settings' && $method === 'PUT') {
         ChatController::updateAiSettings($pdo);
+        exit();
+    }
+
+    // --- PUSH & NOTIFICATIONS ROUTES ---
+    if ($path === '/push/vapid-public-key' && $method === 'GET') {
+        NotificationController::getVapidPublicKey($pdo);
+        exit();
+    }
+    if ($path === '/push/subscribe' && $method === 'POST') {
+        NotificationController::subscribe($pdo);
+        exit();
+    }
+    if ($path === '/push/unsubscribe' && $method === 'POST') {
+        NotificationController::unsubscribe($pdo);
+        exit();
+    }
+    if ($path === '/notifications/settings' && $method === 'GET') {
+        NotificationController::getSettings($pdo);
+        exit();
+    }
+    if ($path === '/notifications/settings' && $method === 'PUT') {
+        NotificationController::updateSettings($pdo);
+        exit();
+    }
+    if ($path === '/notifications/test-push' && $method === 'POST') {
+        NotificationController::testPush($pdo);
+        exit();
+    }
+    if ($path === '/notifications/test-whatsapp' && $method === 'POST') {
+        NotificationController::testWhatsApp($pdo);
+        exit();
+    }
+
+    // --- CONTACT LEAD ROUTE ---
+    if ($path === '/contact' && $method === 'POST') {
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        $name = trim($data['name'] ?? '');
+        $phone = trim($data['phone'] ?? '');
+        $email = trim($data['email'] ?? '');
+        $message = trim($data['message'] ?? '');
+
+        if (!empty($name) && (!empty($phone) || !empty($email))) {
+            $stmt = $pdo->prepare("INSERT INTO leads_capture (name, whatsapp, email, notes, status) VALUES (?, ?, ?, ?, 'new')");
+            $stmt->execute([$name, $phone, $email, $message]);
+            
+            require_once __DIR__ . '/services/NotificationService.php';
+            NotificationService::notifyNewLead($pdo, [
+                'name' => $name,
+                'phone' => $phone,
+                'email' => $email,
+                'notes' => $message,
+                'source' => 'Formulário de Contato do Site'
+            ]);
+        }
+
+        echo json_encode(['success' => true, 'message' => 'Mensagem recebida com sucesso!']);
         exit();
     }
 

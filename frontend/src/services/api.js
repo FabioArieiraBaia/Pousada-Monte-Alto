@@ -211,5 +211,36 @@ export const api = {
   updateAISettings: (data) => request('/ai-settings', {
     method: 'PUT',
     body: JSON.stringify(data)
+  }),
+
+  // Contact Form Lead
+  sendContactMessage: (data) => request('/contact', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+
+  // Push Notifications & WhatsApp Admin
+  getVapidPublicKey: () => request('/push/vapid-public-key'),
+  subscribePushDevice: (subscription) => request('/push/subscribe', {
+    method: 'POST',
+    body: JSON.stringify(subscription)
+  }),
+  unsubscribePushDevice: (endpoint) => request('/push/unsubscribe', {
+    method: 'POST',
+    body: JSON.stringify({ endpoint })
+  }),
+  getNotificationSettings: () => request('/notifications/settings'),
+  updateNotificationSettings: (data) => request('/notifications/settings', {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  testPushNotification: () => request('/notifications/test-push', {
+    method: 'POST'
+  }),
+  testWhatsAppNotification: (data) => request('/notifications/test-whatsapp', {
+    method: 'POST',
+    body: JSON.stringify(data)
   })
 };
+
+export default api;

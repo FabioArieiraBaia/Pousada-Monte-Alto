@@ -506,6 +506,26 @@ PROMPT;
                     $stmtAccName->execute([$accId]);
                     $accName = $stmtAccName->fetchColumn() ?: 'Suíte/Loft';
 
+                    // Disparar Notificações (Push no celular do Admin e WhatsApp CallMeBot)
+                    try {
+                        require_once __DIR__ . '/../services/NotificationService.php';
+                        NotificationService::notifyNewLead($pdo, [
+                            'guest_name' => $guestName,
+                            'guest_phone' => $guestPhone,
+                            'guest_email' => $guestEmail,
+                            'accommodation_name' => $accName,
+                            'check_in' => $checkIn,
+                            'check_out' => $checkOut,
+                            'adults_count' => $guests,
+                            'has_pets' => $hasPets,
+                            'total_price' => $totalPrice,
+                            'source' => 'Agente de IA Concierge (Chat)',
+                            'notes' => $notes
+                        ]);
+                    } catch (Exception $e) {
+                        error_log("Erro ao disparar notificações de lead do chat: " . $e->getMessage());
+                    }
+
                     $preReservation = [
                         'id' => $resId,
                         'guest_name' => $guestName,

@@ -7,15 +7,25 @@ import {
 import { InstagramIcon, FacebookIcon } from '../../components/SocialIcons';
 import SEOHead from '../../components/SEOHead';
 import LocationMapSection from '../../components/LocationMapSection';
+import api from '../../services/api';
 
 export default function ContactPage() {
   const { t } = useTranslation();
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '', message: '' });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSent(true);
+    setLoading(true);
+    try {
+      await api.sendContactMessage(form);
+    } catch (err) {
+      console.warn('Erro ao enviar contato para a API:', err);
+    } finally {
+      setLoading(false);
+      setSent(true);
+    }
   };
 
   return (

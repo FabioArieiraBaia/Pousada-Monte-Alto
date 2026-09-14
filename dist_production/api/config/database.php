@@ -272,6 +272,18 @@ function initDatabase($pdo) {
         }
     } catch (Exception $e) {}
 
+    // 13. Push Subscriptions (Web Push PWA para Android e iOS)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NULL,
+        endpoint TEXT UNIQUE NOT NULL,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        user_agent TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_used_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
     // Seed default ai_settings row if empty
     try {
         $checkAI = $pdo->query("SELECT COUNT(*) as count FROM ai_settings")->fetch();

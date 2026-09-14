@@ -100,6 +100,26 @@ class ReservationsController {
                
         $whatsappUrl = "https://wa.me/{$pousadaWhatsApp}?text=" . rawurlencode($msg);
         
+        // Disparar Notificações (Push no celular do Admin e WhatsApp CallMeBot)
+        try {
+            require_once __DIR__ . '/../services/NotificationService.php';
+            NotificationService::notifyNewLead($pdo, [
+                'guest_name' => $guestName,
+                'guest_phone' => $guestPhone,
+                'guest_email' => $guestEmail,
+                'accommodation_name' => $acc['name_pt'],
+                'check_in' => $checkIn,
+                'check_out' => $checkOut,
+                'adults_count' => $adultsCount,
+                'has_pets' => $hasPets,
+                'total_price' => $totalPrice,
+                'source' => 'Formulário de Reserva do Site',
+                'notes' => $notes
+            ]);
+        } catch (Exception $e) {
+            error_log("Erro ao disparar notificações de nova reserva: " . $e->getMessage());
+        }
+
         echo json_encode([
             'success' => true,
             'id' => $resId,
