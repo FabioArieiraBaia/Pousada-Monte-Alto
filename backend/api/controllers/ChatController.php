@@ -225,7 +225,7 @@ class ChatController {
             $key = trim($key);
             if (empty($key)) continue;
 
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . $key;
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=" . $key;
             $payload = json_encode(['contents' => [['role' => 'user', 'parts' => [['text' => 'ping']]]]]);
 
             $ch = curl_init($url);
@@ -332,7 +332,7 @@ class ChatController {
         ];
     }
 
-    private static function buildSystemPrompt($aiConfig, $knowledge) {
+    public static function buildSystemPrompt($aiConfig, $knowledge) {
         $accList = [];
         foreach ($knowledge['accommodations'] as $a) {
             $accList[] = "- ID: {$a['id']} | Nome: {$a['name_pt']} (Slug: {$a['slug']}) | Tipo: {$a['type']} | Capacidade Máx: {$a['max_guests']} pessoas | Aceita Pet: " . ($a['accepts_pets'] ? 'SIM 🐶🐱' : 'NÃO') . " | Preço Base: R$ " . number_format($a['base_price'], 2, ',', '.') . "/diária | Descrição: {$a['description_pt']}";
@@ -449,7 +449,7 @@ PROMPT;
             $apiKey = trim($apiKey);
             if (empty($apiKey)) continue;
 
-            $models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+            $models = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash'];
             foreach ($models as $model) {
                 $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . $apiKey;
 
@@ -458,7 +458,7 @@ PROMPT;
                 curl_setopt($ch, CURLOPT_POST, true);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 12);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
                 $result = curl_exec($ch);
