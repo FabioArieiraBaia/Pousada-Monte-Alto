@@ -212,6 +212,10 @@ export const api = {
     method: 'PUT',
     body: JSON.stringify(data)
   }),
+  testAiKeys: (keys) => request('/ai-settings/test-keys', {
+    method: 'POST',
+    body: JSON.stringify({ keys })
+  }),
 
   // Contact Form Lead
   sendContactMessage: (data) => request('/contact', {

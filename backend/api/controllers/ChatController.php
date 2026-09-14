@@ -219,6 +219,64 @@ class ChatController {
         echo json_encode(['success' => true, 'message' => 'Configurações de IA salvas com sucesso']);
     }
 
+    /**
+     * Admin: POST /api/ai-settings/test-keys
+     */
+    public static function testAiKeys($pdo) {
+        requireAuth($pdo);
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        $keys = $data['keys'] ?? [];
+
+        if (empty($keys) || !is_array($keys)) {
+            $config = self::getAiSettingsFromDb($pdo);
+            $keys = $config['keys'];
+        }
+
+        $results = [];
+        $workingCount = 0;
+
+        foreach ($keys as $idx => $key) {
+            $key = trim($key);
+            if (empty($key)) continue;
+
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . $key;
+            $payload = json_encode(['contents' => [['role' => 'user', 'parts' => [['text' => 'ping']]]]]);
+
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+            $res = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            $isOk = ($httpCode === 200);
+            if ($isOk) $workingCount++;
+
+            $json = json_decode($res, true);
+            $err = $json['error']['message'] ?? ($isOk ? 'Chave Ativa e Operacional' : "Erro HTTP {$httpCode}");
+
+            $results[] = [
+                'index' => $idx + 1,
+                'key_prefix' => substr($key, 0, 8) . '...',
+                'status' => $isOk ? 'active' : 'error',
+                'http_code' => $httpCode,
+                'message' => $err
+            ];
+        }
+
+        echo json_encode([
+            'success' => true,
+            'working_count' => $workingCount,
+            'total' => count($results),
+            'details' => $results
+        ]);
+    }
+
     // --- PRIVATE HELPERS ---
 
     public static function getAiSettingsFromDb($pdo) {
@@ -255,7 +313,7 @@ class ChatController {
         ];
     }
 
-    private static function buildKnowledgeBase($pdo) {
+    public static function buildKnowledgeBase($pdo) {
         // Accommodations
         $stmtAcc = $pdo->query("
             SELECT a.*, 
@@ -399,6 +457,8 @@ PROMPT;
         $keysPool = $keys;
         shuffle($keysPool); // Randomize to distribute load evenly
 
+        $consecutiveBlocked = 0;
+
         foreach ($keysPool as $apiKey) {
             $apiKey = trim($apiKey);
             if (empty($apiKey)) continue;
@@ -412,7 +472,7 @@ PROMPT;
                 curl_setopt($ch, CURLOPT_POST, true);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 6);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
                 $result = curl_exec($ch);
@@ -433,8 +493,14 @@ PROMPT;
                 }
                 // If leaked (403), don't retry other models with the same broken key
                 if ($httpCode === 403) {
+                    $consecutiveBlocked++;
                     break;
                 }
+            }
+
+            // If 3 keys are permanently blocked/leaked, the entire pool is compromised - failover immediately!
+            if ($consecutiveBlocked >= 3) {
+                break;
             }
         }
 
@@ -586,11 +652,17 @@ PROMPT;
             }
         }
 
-        $isPrice = preg_match('/pre[cç]o|valor|di[aá]ria|quanto custa|quanto est[aá]|or[cç]amento|custa|tarifa/i', $lastUserMsg);
+        $isRomantic = preg_match('/lua de mel|casal|rom[aâ]ntic|namorad|noivad|anivers[aá]rio de casamento|comemora[cç]|hidro|banheira/i', $lastUserMsg);
+        $isBreakfast = preg_match('/caf[eé]|manh[aã]|refei[cç]|comida|restaurante|almo[cç]|jantar|cozinha/i', $lastUserMsg);
+        $isCheckin = preg_match('/check[- ]?in|check[- ]?out|hor[aá]rio|chegada|sa[ií]da|entrar|sair/i', $lastUserMsg);
+        $isAmenities = preg_match('/estacionamento|estacionar|carro|vaga|wi[- ]?fi|internet|ar[- ]condicionado|piscina|tv|smart|frigobar/i', $lastUserMsg);
+        $isAttractions = preg_match('/praia do forno|pontal do atalaia|prainha|praia grande|passeio de barco|barco|lancha|mergulho|arubinha|lagoa|p[oô]r do sol/i', $lastUserMsg);
+        $isPrice = preg_match('/pre[cç]o|valor|di[aá]ria|quanto custa|quanto est[aá]|or[cç]amento|custa|tarifa|promo[cç]/i', $lastUserMsg);
         $isPet = preg_match('/pet|cachorro|gato|animal|animais|porte/i', $lastUserMsg);
         $isLocation = preg_match('/onde fica|endere[cç]o|localiza[cç][aã]o|como chegar|dist[aâ]ncia|longe|perto|praia/i', $lastUserMsg);
         $isReservation = preg_match('/reserv|vaga|dispon[ií]vel|disponibilidade|quarto|su[ií]te|loft|agendar/i', $lastUserMsg);
-        $isGreeting = preg_match('/^(ol[aá]|oi|bom dia|boa tarde|boa noite|tudo bem|como vai)/i', $lastUserMsg);
+        $isGreeting = preg_match('/^(ol[aá]|oi|bom dia|boa tarde|boa noite|tudo bem|como vai|ola)\b/i', $lastUserMsg);
+        $isThanks = preg_match('/obrigad|valeu|agrade[cç]|show|perfeito|maravilha|legal|otimo|ótimo/i', $lastUserMsg);
 
         // Check if phone was provided in the message to automatically capture lead!
         $leadSaved = false;
@@ -611,11 +683,75 @@ PROMPT;
                     2, 0, json_encode($messages, JSON_UNESCAPED_UNICODE)
                 ]);
                 $leadSaved = true;
+
+                // Notificar admin imediatamente
+                try {
+                    require_once __DIR__ . '/../services/NotificationService.php';
+                    NotificationService::notifyNewLead($pdo, [
+                        'guest_name' => $capturedName,
+                        'guest_phone' => $capturedPhone,
+                        'accommodation_name' => 'Suíte Romântica / Master',
+                        'source' => 'Chat Concierge Virtual',
+                        'notes' => 'Contato deixado no chat: ' . $lastUserMsg
+                    ]);
+                } catch (Exception $e) {}
+
             } catch (Exception $e) {}
         }
 
-        if ($isPet) {
+        $waMsg = "Olá! Estive conversando com a Concierge virtual no site da Pousada Monte Alto e gostaria de mais informações!";
+
+        if ($isRomantic) {
+            $text = "🎉 **Parabéns pela Lua de Mel!** Que momento especial e abençoado! 🥂✨\n\n"
+                  . "A **Pousada Monte Alto** é o destino dos sonhos para casais que buscam romance, tranquilidade e privacidade pé na areia em Arraial do Cabo.\n\n"
+                  . "Para a sua Lua de Mel, recomendamos com carinho:\n"
+                  . "🌹 **Suíte Romântica Sunset:** Nossa suíte mais apaixonante! Conta com banheira de hidromassagem privativa, varanda e uma vista inesquecível para o pôr do sol mais deslumbrante da Lagoa de Araruama.\n"
+                  . "🌊 **Suíte Master Pé na Areia:** Cama king size, hidromassagem, ar-condicionado silencioso e a poucos passos da praia de Monte Alto.\n\n"
+                  . "✨ *Dica dos noivos:* Mediante reserva antecipada, podemos organizar mimos especiais no quarto (espumante gelado, pétalas e arranjo romântico)!\n\n"
+                  . "Vocês já definiram o período de **Check-in e Check-out**? Toque no botão do WhatsApp abaixo para falar com nossa recepção e garantir essa data mágica!";
+            $waMsg = "Olá! Estou em Lua de Mel e gostaria de reservar uma suíte romântica com hidromassagem na Pousada Monte Alto!";
+
+        } elseif ($isBreakfast) {
+            $text = "🥐 **Alimentação & Gastronomia em Monte Alto:**\n\n"
+                  . "• Nossas diárias proporcionam momentos deliciosos e tranquilos para começar bem o dia!\n"
+                  . "• Se você busca total autonomia gastronômica para a família, nosso **Loft Massambaba** conta com cozinha privativa completa (geladeira, fogão, micro-ondas e utensílios).\n"
+                  . "• Além disso, a poucos metros da pousada temos excelentes restaurantes e quiosques beira-mar com o melhor peixe fresco e frutos do mar de Arraial do Cabo!\n\n"
+                  . "Gostaria de consultar as opções de acomodação para as suas datas?";
+            $waMsg = "Olá! Gostaria de saber mais sobre as acomodações e alimentação na Pousada Monte Alto!";
+
+        } elseif ($isCheckin) {
+            $text = "⏰ **Horários e Políticas de Estadia:**\n\n"
+                  . "• **Check-in:** A partir das **14:00h**;\n"
+                  . "• **Check-out:** Até as **12:00h**;\n"
+                  . "• *Chegada antecipada ou saída tardia:* Caso chegue antes, guardamos suas bagagens com segurança enquanto você já aproveita a praia em frente!\n\n"
+                  . "Qual a data prevista para a sua chegada na Pousada Monte Alto?";
+            $waMsg = "Olá! Gostaria de consultar horários e disponibilidade para me hospedar na Pousada Monte Alto!";
+
+        } elseif ($isAmenities) {
+            $text = "🏖️ **Comodidades & Conforto da Pousada Monte Alto:**\n\n"
+                  . "🚗 **Estacionamento Privativo:** Vagas seguras e gratuitas para seu veículo na pousada;\n"
+                  . "📶 **Wi-Fi de Alta Velocidade:** Cobertura rápida em todas as suítes e áreas comuns (ideal para home office na praia);\n"
+                  . "❄️ **Climatização:** Ar-condicionado Split silencioso em todos os quartos;\n"
+                  . "📺 **Smart TV & Frigobar:** Para seus momentos de relaxamento após um dia de sol;\n"
+                  . "🛁 **Hidromassagem:** Disponível na *Suíte Romântica Sunset* e na *Suíte Master Pé na Areia*.\n\n"
+                  . "Deseja conferir a disponibilidade para quantos hóspedes?";
+            $waMsg = "Olá! Gostaria de saber detalhes das comodidades da Pousada Monte Alto!";
+
+        } elseif ($isAttractions) {
+            $text = "🌊 **Passeios & As Praias Mais Famosas de Arraial:**\n\n"
+                  . "A Pousada Monte Alto é a melhor base para explorar toda a Região dos Lagos:\n"
+                  . "🏖️ **Praia de Monte Alto:** Pé na areia, águas límpidas e tranquilas para relaxar sem muvuca;\n"
+                  . "🌅 **Pôr do Sol da Lagoa de Araruama:** A apenas 3 minutos a pé da pousada;\n"
+                  . "⛵ **Praia dos Anjos / Saída de Barcos:** A 15 min de carro para os passeios de barco até a Praia do Farol e Gruta Azul;\n"
+                  . "🌴 **Prainhas do Atalaia & Praia do Forno:** A cerca de 18 min de carro;\n"
+                  . "🚗 **Grande Vantagem:** Ficando em Monte Alto, você **não pega o trânsito quilométrico** de entrada de Arraial nos fins de semana e feriados!\n\n"
+                  . "Para quais datas você planeja vir nos visitar?";
+            $waMsg = "Olá! Gostaria de dicas de passeios e reserva na Pousada Monte Alto!";
+
+        } elseif ($isPet) {
             $text = "Sim! Somos apaixonados por animais e a **Pousada Monte Alto é 100% Pet Friendly**! 🐶🐱\n\nTemos suítes e lofts com espaço perfeito para o seu pet relaxar e aproveitar as férias com a família, além de estarmos a poucos passos da Praia de Monte Alto, perfeita para passeios matinais com seu companheiro de 4 patas.\n\nQual o porte do seu pet e para quais datas vocês pretendem vir? Terei o maior prazer em indicar a melhor acomodação!";
+            $waMsg = "Olá! Gostaria de viajar com meu pet e reservar na Pousada Monte Alto!";
+
         } elseif ($isPrice) {
             $text = "Nossas tarifas oferecem o melhor custo-benefício pé na areia da Região dos Lagos! Nossas opções incluem:\n\n"
                   . "• **Suíte Master Pé na Areia:** Cama king, ar-condicionado, banheira de hidromassagem e vista mar (a partir de R$ 380/diária);\n"
@@ -623,6 +759,8 @@ PROMPT;
                   . "• **Suíte Jardim Tropical:** Ambiente romântico e privativo para casais (a partir de R$ 280/diária);\n"
                   . "• **Suíte Romântica Sunset:** Hidromassagem e vista deslumbrante do pôr do sol da Lagoa de Araruama.\n\n"
                   . "✨ **Estamos com condições promocionais exclusivas para reservas diretas!** Para quantas pessoas e qual o período desejado? Toque no WhatsApp para falar com nossa equipe!";
+            $waMsg = "Olá! Gostaria de solicitar um orçamento de diárias na Pousada Monte Alto!";
+
         } elseif ($isLocation) {
             $text = "A **Pousada Monte Alto** fica na Travessa Américo Reis, no tranquilo distrito de Monte Alto em **Arraial do Cabo - RJ**.\n\n"
                   . "Nossa localização é um verdadeiro privilégio:\n"
@@ -630,6 +768,8 @@ PROMPT;
                   . "🌅 **Pôr do Sol da Lagoa:** A 3 minutos a pé da orla da Lagoa de Araruama com o pôr do sol mais espetacular do Rio;\n"
                   . "🚗 **Zero Engarrafamento:** Acesso direto pela RJ-102 sem pegar os congestionamentos de horas para entrar no centro de Arraial ou de Cabo Frio em feriados e alta temporada!\n"
                   . "📍 As praias centrais (Praia dos Anjos, Praia Grande, Prainha, Forno e Pontal do Atalaia) ficam a apenas 12 a 18 minutos de carro.";
+            $waMsg = "Olá! Gostaria de saber como chegar e valores na Pousada Monte Alto!";
+
         } elseif ($isReservation) {
             $text = "Com certeza! Será um enorme prazer receber você na **Pousada Monte Alto**! 🎉\n\n"
                   . "Para verificarmos a disponibilidade e garantirmos a melhor tarifa promocional sem taxas de intermediários:\n\n"
@@ -637,13 +777,28 @@ PROMPT;
                   . "2️⃣ Quantos adultos e crianças virão?\n"
                   . "3️⃣ Pretende trazer algum pet?\n\n"
                   . "Você também pode tocar no botão do WhatsApp abaixo para falar agora mesmo com nossa equipe e garantir sua reserva de imediato!";
+            $waMsg = "Olá! Gostaria de verificar disponibilidade para reservar na Pousada Monte Alto!";
+
+        } elseif ($isThanks) {
+            $text = "Eu que agradeço pelo carinho! 😊 É uma alegria imensa poder ajudar a planejar sua viagem para este paraíso que é Arraial do Cabo.\n\n"
+                  . "Estarei sempre por aqui caso precise de mais dicas ou queira consultar acomodações. E se preferir um atendimento personalizado em tempo real, nossa equipe está pronta no WhatsApp!";
+            $waMsg = "Olá! Estive no site da Pousada Monte Alto e gostaria de falar com a equipe!";
+
+        } elseif ($isGreeting) {
+            $text = "Olá! Seja muito bem-vindo(a) à **Pousada Monte Alto**! 🌊✨\n\n"
+                  . "Como posso ajudar você hoje? Gostaria de saber sobre nossos valores promocionais, conhecer as suítes com hidromassagem ou verificar disponibilidade para uma data específica?";
+            $waMsg = "Olá! Gostaria de informações sobre hospedagem na Pousada Monte Alto!";
+
         } else {
-            $text = "Olá! Que alegria ter você aqui na **Pousada Monte Alto**! 🌊✨\n\n"
-                  . "Eu sou a **{$agentName}**, sua Concierge Virtual. Aqui em Monte Alto você desfruta do melhor refúgio de Arraial do Cabo: suítes confortáveis com hidromassagem, lofts com cozinha para famílias, ambiente pet friendly, pé na areia e pertinho do pôr do sol da Lagoa de Araruama.\n\n"
-                  . "Como posso ajudar você hoje? Gostaria de saber valores das diárias, conhecer as suítes ou verificar disponibilidade para as suas datas?";
+            // Contextual continuation - NEVER repeating the initial greeting block!
+            $text = "Entendi perfeitamente! Como sua Concierge aqui na **Pousada Monte Alto**, posso te ajudar com:\n\n"
+                  . "🛏️ **Conhecer nossas Suítes & Lofts:** Opções pé na areia com hidromassagem e lofts com cozinha;\n"
+                  . "💰 **Consultar Valores & Disponibilidade:** Promoções especiais para reservas diretas;\n"
+                  . "📍 **Dicas de Arraial do Cabo:** Praias, passeios de barco e pôr do sol na Lagoa de Araruama.\n\n"
+                  . "O que você gostaria de explorar primeiro? Ou se preferir, toque no botão do WhatsApp abaixo para falar com nossa recepção!";
+            $waMsg = "Olá! Gostaria de informações sobre reservas na Pousada Monte Alto: " . substr($lastUserMsg, 0, 80);
         }
 
-        $waMsg = "Olá! Estive conversando com a Concierge no site da Pousada Monte Alto e gostaria de informações sobre reservas e valores!";
         $whatsappUrl = self::buildWhatsAppUrl($whatsappNumber, $waMsg);
 
         return [

@@ -32,6 +32,8 @@ export default function AdminAIChatPage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [testingKeys, setTestingKeys] = useState(false);
+  const [testKeysResult, setTestKeysResult] = useState(null);
 
   const presetAvatars = [
     { name: 'Marina (Concierge)', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80' },
@@ -123,6 +125,20 @@ export default function AdminAIChatPage() {
       alert('Erro ao salvar configurações de IA: ' + err.message);
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleTestKeys = async () => {
+    setTestingKeys(true);
+    setTestKeysResult(null);
+    try {
+      const keysList = keysText.split('\n').map(k => k.trim()).filter(Boolean);
+      const res = await api.testAiKeys(keysList);
+      setTestKeysResult(res);
+    } catch (err) {
+      alert('Erro ao testar chaves: ' + err.message);
+    } finally {
+      setTestingKeys(false);
     }
   };
 
@@ -601,30 +617,89 @@ export default function AdminAIChatPage() {
 
           {/* Gerenciamento de Chaves de API */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-200/80 space-y-4">
-            <div>
-              <h3 className="font-serif text-lg font-bold text-stone-900 flex items-center gap-2">
-                <Key className="w-5 h-5 text-amber-600" />
-                <span>Chaves de Ativação do Sistema (Rotação Automática com Failover)</span>
-              </h3>
-              <p className="text-stone-500 text-xs mt-0.5">
-                Insira uma chave por linha. O sistema distribui as mensagens entre as chaves e, caso alguma atinja o limite temporário de requisições por minuto, pula automaticamente para a próxima.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+              <div>
+                <h3 className="font-serif text-lg font-bold text-stone-900 flex items-center gap-2">
+                  <Key className="w-5 h-5 text-amber-600" />
+                  <span>Chaves de Ativação do Sistema (Google Gemini 2.5 Flash)</span>
+                </h3>
+                <p className="text-stone-500 text-xs mt-0.5">
+                  Insira uma chave por linha. O sistema distribui as mensagens entre as chaves com rotação inteligente.
+                </p>
+              </div>
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold px-3 py-1.5 rounded-xl border border-amber-300 flex items-center gap-1 transition-colors self-start sm:self-auto"
+              >
+                <span>Obter Chave Grátis no Google</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
 
             <textarea
-              rows={8}
+              rows={6}
               value={keysText}
               onChange={(e) => setKeysText(e.target.value)}
-              placeholder="AIzaSyCHGG9m1yJJy1ffn5OXnF4QtH4GkQU8sWo&#10;AIzaSyDTq2Juy_-GBmUqUENkaMuEIT9pDaIpnyY..."
+              placeholder="Cole sua chave da API do Google Gemini aqui (ex: AIzaSy...)"
               className="w-full text-xs p-4 rounded-xl border border-stone-300 focus:outline-none focus:border-amber-500 font-mono text-stone-700 leading-relaxed"
             />
 
-            <div className="text-[11px] text-stone-500 flex items-center gap-2 bg-amber-50 p-3 rounded-xl border border-amber-200">
-              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>
-                <strong>{keysText.split('\n').filter(k => k.trim().length > 10).length} chaves ativas</strong> configuradas no pool de rotação.
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <div className="text-[11px] text-stone-500 flex items-center gap-2 bg-amber-50 p-2.5 px-3 rounded-xl border border-amber-200">
+                <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>{keysText.split('\n').filter(k => k.trim().length > 10).length} chaves</strong> cadastradas.
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleTestKeys}
+                disabled={testingKeys}
+                className="bg-stone-900 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm transition-all disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${testingKeys ? 'animate-spin' : ''}`} />
+                <span>{testingKeys ? 'Testando Chaves...' : 'Testar Chaves da IA Agora'}</span>
+              </button>
             </div>
+
+            {/* Resultado do Teste de Chaves */}
+            {testKeysResult && (
+              <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-2.5 animate-fade-in text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-stone-900">
+                    Resultado do Teste de Conexão com o Google Gemini:
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                    testKeysResult.working_count > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {testKeysResult.working_count} de {testKeysResult.total} chaves ativas
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {testKeysResult.details?.map((k, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`p-2 rounded-xl flex items-center justify-between font-mono text-[11px] ${
+                        k.status === 'active' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                      }`}
+                    >
+                      <span className="font-bold">Chave #{k.index} ({k.key_prefix})</span>
+                      <span className="text-[10px]">{k.status === 'active' ? '✓ Operacional (200 OK)' : `✗ ${k.message}`}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {testKeysResult.working_count === 0 && (
+                  <p className="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                    💡 <strong>Aviso:</strong> Todas as chaves acima foram bloqueadas pelo Google ou estão sem cota. O sistema está respondendo aos hóspedes usando o <strong>Motor Concierge Local inteligente</strong> (sem downtime). Para reativar o Gemini 2.5 Flash nativo, gere uma chave nova em <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-bold">Google AI Studio</a> e cole acima.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}

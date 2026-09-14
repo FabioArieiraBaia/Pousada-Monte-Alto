@@ -277,6 +277,10 @@ try {
         ChatController::updateAiSettings($pdo);
         exit();
     }
+    if ($path === '/ai-settings/test-keys' && $method === 'POST') {
+        ChatController::testAiKeys($pdo);
+        exit();
+    }
 
     // --- PUSH & NOTIFICATIONS ROUTES ---
     if ($path === '/push/vapid-public-key' && $method === 'GET') {
