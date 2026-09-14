@@ -122,12 +122,16 @@ export const api = {
 
   // Finance
   getFinanceSummary: (month) => request(`/finance/summary?month=${month || ''}`),
-  getFinanceTransactions: (type, month) => request(`/finance?type=${type || ''}&month=${month || ''}`),
-  createFinanceTransaction: (data) => request('/finance', {
+  getFinanceTransactions: (type, month) => request(`/finance/transactions?type=${type || ''}&month=${month || ''}`),
+  getFinanceKpis: (month) => request(`/finance/kpis?month=${month || ''}`),
+  getFinanceByAccommodation: (month) => request(`/finance/by-accommodation?month=${month || ''}`),
+  getFinanceReceivables: () => request('/finance/receivables'),
+  getFinanceExportCsvUrl: (month) => `${API_BASE_URL}/finance/export-csv?month=${month || ''}`,
+  createFinanceTransaction: (data) => request('/finance/transactions', {
     method: 'POST',
     body: JSON.stringify(data)
   }),
-  deleteFinanceTransaction: (id) => request(`/finance/${id}`, {
+  deleteFinanceTransaction: (id) => request(`/finance/transactions/${id}`, {
     method: 'DELETE'
   }),
 

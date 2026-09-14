@@ -2,8 +2,8 @@
 // backend/api/middleware/AuthMiddleware.php
 
 function requireAuth($pdo) {
-    $headers = getallheaders();
-    $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    $headers = function_exists('getallheaders') ? getallheaders() : [];
+    $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     
     if (!$authHeader || !preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
         http_response_code(401);

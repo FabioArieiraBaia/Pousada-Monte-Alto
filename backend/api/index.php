@@ -177,7 +177,7 @@ try {
     }
 
     // --- FINANCE ROUTES ---
-    if ($path === '/finance/transactions' && $method === 'GET') {
+    if (($path === '/finance' || $path === '/finance/transactions') && $method === 'GET') {
         FinanceController::getTransactions($pdo);
         exit();
     }
@@ -185,11 +185,27 @@ try {
         FinanceController::getSummary($pdo);
         exit();
     }
-    if ($path === '/finance/transactions' && $method === 'POST') {
+    if ($path === '/finance/kpis' && $method === 'GET') {
+        FinanceController::getKpis($pdo);
+        exit();
+    }
+    if ($path === '/finance/by-accommodation' && $method === 'GET') {
+        FinanceController::getByAccommodation($pdo);
+        exit();
+    }
+    if ($path === '/finance/receivables' && $method === 'GET') {
+        FinanceController::getReceivables($pdo);
+        exit();
+    }
+    if ($path === '/finance/export-csv' && $method === 'GET') {
+        FinanceController::exportCsv($pdo);
+        exit();
+    }
+    if (($path === '/finance' || $path === '/finance/transactions') && $method === 'POST') {
         FinanceController::createTransaction($pdo);
         exit();
     }
-    if (preg_match('#^/finance/transactions/(\d+)$#', $path, $m) && $method === 'DELETE') {
+    if (preg_match('#^/finance(?:/transactions)?/(\d+)$#', $path, $m) && $method === 'DELETE') {
         FinanceController::deleteTransaction($pdo, $m[1]);
         exit();
     }
