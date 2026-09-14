@@ -19,6 +19,7 @@ require_once __DIR__ . '/controllers/AttractionsController.php';
 require_once __DIR__ . '/controllers/UploadController.php';
 require_once __DIR__ . '/controllers/ChatController.php';
 require_once __DIR__ . '/controllers/NotificationController.php';
+require_once __DIR__ . '/controllers/DashboardController.php';
 
 $pdo = getDatabaseConnection();
 
@@ -174,6 +175,12 @@ try {
     }
     if (preg_match('#^/reservations/(\d+)$#', $path, $m) && $method === 'DELETE') {
         ReservationsController::delete($pdo, $m[1]);
+        exit();
+    }
+
+    // --- DASHBOARD ROUTE ---
+    if ($path === '/dashboard' && $method === 'GET') {
+        DashboardController::getOverview($pdo);
         exit();
     }
 

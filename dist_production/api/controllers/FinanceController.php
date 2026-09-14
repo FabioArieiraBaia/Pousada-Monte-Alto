@@ -7,7 +7,7 @@ class FinanceController {
         requireAuth($pdo);
         
         $currentMonth = date('Y-m');
-        $selectedMonth = $_GET['month'] ?? $currentMonth;
+        $selectedMonth = !empty($_GET['month']) ? $_GET['month'] : $currentMonth;
         
         // Month totals
         $stmtMonthIncome = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM financial_transactions WHERE type = 'income' AND strftime('%Y-%m', transaction_date) = ? AND status = 'completed'");
@@ -155,7 +155,7 @@ class FinanceController {
         requireAuth($pdo);
 
         $currentMonth = date('Y-m');
-        $selectedMonth = $_GET['month'] ?? $currentMonth;
+        $selectedMonth = !empty($_GET['month']) ? $_GET['month'] : $currentMonth;
         $daysInMonth = (int)date('t', strtotime($selectedMonth . '-01'));
 
         // 1. Current Month Realized Income & Expense
@@ -244,7 +244,7 @@ class FinanceController {
      */
     public static function getByAccommodation($pdo) {
         requireAuth($pdo);
-        $selectedMonth = $_GET['month'] ?? date('Y-m');
+        $selectedMonth = !empty($_GET['month']) ? $_GET['month'] : date('Y-m');
 
         $stmt = $pdo->prepare("
             SELECT 

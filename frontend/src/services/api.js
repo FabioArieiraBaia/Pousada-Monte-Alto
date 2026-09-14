@@ -120,8 +120,11 @@ export const api = {
   }),
   getWhatsAppLink: (id) => request(`/reservations/${id}/whatsapp`),
 
+  // Dashboard
+  getDashboardOverview: (month) => request('/dashboard' + (month ? `?month=${month}` : '')),
+
   // Finance
-  getFinanceSummary: (month) => request(`/finance/summary?month=${month || ''}`),
+  getFinanceSummary: (month) => request('/finance/summary' + (month ? `?month=${month}` : '')),
   getFinanceTransactions: (type, month) => request(`/finance/transactions?type=${type || ''}&month=${month || ''}`),
   getFinanceKpis: (month) => request(`/finance/kpis?month=${month || ''}`),
   getFinanceByAccommodation: (month) => request(`/finance/by-accommodation?month=${month || ''}`),
