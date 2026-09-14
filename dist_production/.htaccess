@@ -1,6 +1,16 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /montealto/
+
+    # Compatibility: If accessed with /montealto/ prefix, route seamlessly to root assets/api
+    RewriteRule ^montealto/api/(.*)$ api/index.php [QSA,L]
+    RewriteRule ^montealto/api$ api/index.php [QSA,L]
+    RewriteRule ^montealto/assets/(.*)$ assets/$1 [L]
+    RewriteRule ^montealto/videos/(.*)$ videos/$1 [L]
+    RewriteRule ^montealto/uploads/(.*)$ api/uploads/$1 [L]
+    RewriteRule ^montealto/sitemap\.xml$ api/sitemap.php [L]
+    RewriteRule ^montealto/robots\.txt$ robots.txt [L]
+    RewriteRule ^montealto/?$ index.html [L]
+    RewriteRule ^montealto/(.*)$ $1 [QSA]
 
     # 1. Dynamic XML Sitemap (Search Console always up to date)
     RewriteRule ^sitemap\.xml$ api/sitemap.php [L]
@@ -9,7 +19,7 @@
     # 2. Robots.txt
     RewriteRule ^robots\.txt$ robots.txt [L]
 
-    # 3. API Route: route /montealto/api/* to api/index.php
+    # 3. API Route: route /api/* to api/index.php
     RewriteRule ^api/(.*)$ api/index.php [QSA,L]
     RewriteRule ^api$ api/index.php [QSA,L]
 

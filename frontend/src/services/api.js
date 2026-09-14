@@ -1,6 +1,12 @@
-// frontend/src/services/api.js
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/montealto')) {
+    return '/montealto/api';
+  }
+  return '/api';
+};
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/montealto/api';
+const API_BASE_URL = getApiBaseUrl();
 
 export const getAuthToken = () => localStorage.getItem('pousada_admin_token');
 export const setAuthToken = (token) => localStorage.setItem('pousada_admin_token', token);

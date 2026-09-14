@@ -111,7 +111,7 @@ export default function AdminLayout() {
 
           <div className="flex items-center gap-2 pt-2 border-t border-stone-800/80">
             <a
-              href="/montealto/"
+              href={typeof window !== 'undefined' && window.location.pathname.startsWith('/montealto') ? '/montealto/' : '/'}
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 text-center bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white py-2 px-3 rounded-xl text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors"

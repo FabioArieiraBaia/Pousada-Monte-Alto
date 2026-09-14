@@ -72,8 +72,9 @@ export default function InteractiveVideoBackground({ mode = 'sea' }) {
     };
   }, [mode]);
 
-  const seaVideoSrc = '/montealto/videos/ocean_waves.webm';
-  const sunsetVideoSrc = '/montealto/videos/sunset_lagoon.webm';
+  const pathPrefix = (typeof window !== 'undefined' && window.location.pathname.startsWith('/montealto')) ? '/montealto' : '';
+  const seaVideoSrc = `${pathPrefix}/videos/ocean_waves.webm`;
+  const sunsetVideoSrc = `${pathPrefix}/videos/sunset_lagoon.webm`;
 
   return (
     <div className="fixed inset-0 w-full h-full z-0 pointer-events-none overflow-hidden bg-stone-950">

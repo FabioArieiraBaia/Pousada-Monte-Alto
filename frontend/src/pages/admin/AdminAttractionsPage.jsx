@@ -238,7 +238,7 @@ export default function AdminAttractionsPage() {
               {/* Actions Footer */}
               <div className="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-2">
                 <a
-                  href={`/montealto/praias/${att.slug}`}
+                  href={`${typeof window !== 'undefined' && window.location.pathname.startsWith('/montealto') ? '/montealto' : ''}/praias/${att.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 text-stone-600 hover:text-stone-900 hover:bg-white rounded-xl transition-colors"
