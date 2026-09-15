@@ -1,5 +1,6 @@
 <?php
 // backend/api/index.php
+ob_start();
 
 require_once __DIR__ . '/config/cors.php';
 handleCORS();
@@ -52,6 +53,8 @@ if (preg_match('#^/uploads/(.+)$#', $path, $m)) {
 }
 
 try {
+    if (ob_get_length()) ob_clean();
+
     // --- AUTH ROUTES ---
     if ($path === '/auth/login' && $method === 'POST') {
         AuthController::login($pdo);

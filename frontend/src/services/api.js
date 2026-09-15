@@ -34,7 +34,21 @@ async function request(endpoint, options = {}) {
       headers
     });
 
-    const data = await res.json();
+    const rawText = await res.text();
+    let cleanText = rawText.trim();
+    // Strip UTF-8 BOM if present (charCode 0xFEFF)
+    if (cleanText.charCodeAt(0) === 0xFEFF) {
+      cleanText = cleanText.slice(1).trim();
+    }
+
+    let data;
+    try {
+      data = JSON.parse(cleanText);
+    } catch (parseErr) {
+      console.error(`JSON Parse Error on ${endpoint}:`, parseErr, rawText);
+      throw new Error('Resposta do servidor em formato inválido');
+    }
+
     if (!res.ok) {
       throw new Error(data.error || 'Erro na requisição');
     }

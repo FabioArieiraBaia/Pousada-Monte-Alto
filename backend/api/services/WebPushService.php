@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 class WebPushService {
     private const DER_PREFIX = "3059301306072a8648ce3d020106082a8648ce3d030107034200";
