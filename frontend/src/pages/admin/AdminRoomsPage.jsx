@@ -525,17 +525,25 @@ export default function AdminRoomsPage() {
 
               {/* YouTube Link */}
               <div>
-                <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center gap-1">
-                  <Video className="w-3.5 h-3.5 text-red-600" />
-                  Link do Vídeo no YouTube
+                <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Video className="w-3.5 h-3.5 text-red-600" />
+                    Link do Vídeo no YouTube
+                  </span>
+                  <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-semibold">
+                    Aceita Shorts & Vídeos 16:9
+                  </span>
                 </label>
                 <input
                   type="text"
                   value={form.youtube_video_url}
                   onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })}
-                  placeholder="https://www.youtube.com/watch?v=..."
+                  placeholder="https://www.youtube.com/watch?v=... ou https://youtube.com/shorts/..."
                   className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
+                <p className="text-[10px] text-stone-400 mt-1">
+                  Cole o link do YouTube tradicional ou de um <strong>YouTube Short</strong> vertical. O sistema adapta o player automaticamente.
+                </p>
               </div>
 
               {/* YouTube Preview if provided */}

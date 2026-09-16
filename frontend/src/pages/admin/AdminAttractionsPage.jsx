@@ -437,17 +437,25 @@ export default function AdminAttractionsPage() {
 
               {/* YouTube Video Tour Link */}
               <div>
-                <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center gap-1.5">
-                  <Video className="w-3.5 h-3.5 text-red-600" />
-                  Link do Vídeo no YouTube (Tour da Praia)
+                <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Video className="w-3.5 h-3.5 text-red-600" />
+                    Link do Vídeo no YouTube (Tour da Praia)
+                  </span>
+                  <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-semibold">
+                    Aceita Shorts & Vídeos 16:9
+                  </span>
                 </label>
                 <input
                   type="text"
                   value={form.youtube_video_url}
                   onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })}
-                  placeholder="https://www.youtube.com/watch?v=..."
+                  placeholder="https://www.youtube.com/watch?v=... ou https://youtube.com/shorts/..."
                   className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
+                <p className="text-[10px] text-stone-400 mt-1">
+                  Insira o link de um vídeo widescreen ou de um <strong>YouTube Short</strong> vertical.
+                </p>
 
                 {form.youtube_video_url && (
                   <div className="mt-3 rounded-2xl overflow-hidden border border-stone-200">

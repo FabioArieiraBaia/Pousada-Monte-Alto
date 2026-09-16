@@ -852,16 +852,24 @@ export default function AdminBlogPage() {
 
               {/* Vídeo do YouTube */}
               <div className="space-y-3 bg-stone-50/70 p-5 rounded-2xl border border-stone-200/80">
-                <label className="block text-xs font-bold text-stone-700 uppercase mb-1">
-                  Link de Vídeo no YouTube (Opcional)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-stone-700 uppercase">
+                    Link de Vídeo no YouTube (Opcional)
+                  </label>
+                  <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-semibold">
+                    Aceita Shorts & Vídeos 16:9
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={form.youtube_video_url}
                   onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })}
-                  placeholder="https://www.youtube.com/watch?v=..."
+                  placeholder="https://www.youtube.com/watch?v=... ou https://youtube.com/shorts/..."
                   className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
+                <p className="text-[10px] text-stone-400">
+                  Compatível com vídeos do YouTube e <strong>YouTube Shorts</strong>. O player adapta a proporção vertical automaticamente.
+                </p>
 
                 {form.youtube_video_url && (
                   <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm max-w-md">
