@@ -4,4 +4,27 @@ Disallow: /admin
 Disallow: /admin/
 Disallow: /api/
 
-Sitemap: https://fabioarieira.com/montealto/sitemap.xml
+# AI Search & LLM Crawlers (GPTBot, PerplexityBot, Google-Extended, ClaudeBot)
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Diffbot
+Allow: /
+
+Sitemap: https://montealtohospedagens.com.br/sitemap.xml
+# AI Knowledge file: https://montealtohospedagens.com.br/ai.txt

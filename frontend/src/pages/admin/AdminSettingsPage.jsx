@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   Settings, Save, Phone, MessageCircle, Mail, 
   MapPin, Clock, Wifi, CheckCircle2, AlertCircle, Share2, Sparkles, Tag, Flame,
-  Bell, Smartphone, Vibrate, Check, Loader2, Send, ExternalLink, HelpCircle
+  Bell, Smartphone, Vibrate, Check, Loader2, Send, ExternalLink, HelpCircle, Video
 } from 'lucide-react';
 import { api } from '../../services/api';
 import pushNotificationService from '../../services/pushNotification';
+import YouTubeEmbed from '../../components/YouTubeEmbed';
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
@@ -28,7 +29,8 @@ export default function AdminSettingsPage() {
     callmebot_phone: '5521969493569',
     callmebot_api_key: '',
     notify_on_lead_whatsapp: '1',
-    notify_on_lead_push: '1'
+    notify_on_lead_push: '1',
+    tour_video_url: 'https://www.youtube.com/watch?v=0kH8s4Ue7w8'
   });
 
   const [loading, setLoading] = useState(true);
@@ -427,6 +429,56 @@ export default function AdminSettingsPage() {
                 className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none"
               />
             </div>
+          </div>
+        </div>
+
+        {/* 🎬 VÍDEO DO TOUR GERAL DA POUSADA (HOME PAGE) 🎬 */}
+        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200/90 shadow-sm space-y-4">
+          <div className="flex items-center gap-3 border-b border-stone-100 pb-3">
+            <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center font-bold">
+              <Video className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-serif text-lg font-bold text-stone-900 flex items-center gap-2">
+                <span>Vídeo do Tour Completo da Pousada (Página Inicial)</span>
+                <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">
+                  YouTube & Shorts
+                </span>
+              </h3>
+              <p className="text-stone-500 text-xs mt-0.5">
+                Link do vídeo que será exibido no modal quando os visitantes clicarem em <strong>"Tour em Vídeo da Pousada"</strong> na Home.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1">
+                Link do Vídeo no YouTube (Suporta Links Padrão ou YouTube Shorts)
+              </label>
+              <input
+                type="text"
+                value={settings.tour_video_url || ''}
+                onChange={(e) => setSettings({ ...settings, tour_video_url: e.target.value })}
+                placeholder="Ex: https://www.youtube.com/watch?v=... ou https://www.youtube.com/shorts/..."
+                className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:outline-none focus:border-red-500 font-mono"
+              />
+              <p className="text-[11px] text-stone-400 mt-1">
+                💡 Aceita vídeos normais em 16:9 HD ou vídeos verticais do YouTube Shorts. O player se adapta automaticamente!
+              </p>
+            </div>
+
+            {/* Live Preview */}
+            {settings.tour_video_url && (
+              <div className="pt-2">
+                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-2">
+                  Pré-visualização do Tour em Vídeo:
+                </span>
+                <div className="max-w-xl mx-auto">
+                  <YouTubeEmbed url={settings.tour_video_url} title="Tour da Pousada - Preview" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

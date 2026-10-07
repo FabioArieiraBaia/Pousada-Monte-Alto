@@ -1,6 +1,8 @@
 <?php
 // backend/api/controllers/ReservationsController.php
 
+require_once __DIR__ . '/../services_lib/StayRuleService.php';
+
 class ReservationsController {
 
     public static function getAll($pdo) {
@@ -10,7 +12,7 @@ class ReservationsController {
                 (SELECT COUNT(*) FROM financial_transactions WHERE reservation_id = r.id AND status = 'completed') as is_in_finance
                 FROM reservations r
                 LEFT JOIN accommodations a ON r.accommodation_id = a.id
-                ORDER BY r.created_at DESC";
+                ORDER BY r.check_in ASC, r.created_at DESC";
                 
         $stmt = $pdo->query($sql);
         $reservations = $stmt->fetchAll();
@@ -70,8 +72,20 @@ class ReservationsController {
             return;
         }
         
-        $nights = max(1, (strtotime($checkOut) - strtotime($checkIn)) / 86400);
-        $totalPrice = $nights * $acc['base_price'];
+        // Validate stay rules (minimum nights, weekend rules, and packages)
+        $stayRule = StayRuleService::validateStay($pdo, $accommodationId, $checkIn, $checkOut);
+        if (!$stayRule['valid']) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => $stayRule['reason'],
+                'min_nights' => $stayRule['min_nights'],
+                'is_package' => $stayRule['is_package']
+            ]);
+            return;
+        }
+
+        $nights = $stayRule['nights'];
+        $totalPrice = $stayRule['total_price'];
         
         $stmt = $pdo->prepare("INSERT INTO reservations 
             (accommodation_id, guest_name, guest_email, guest_phone, check_in, check_out, adults_count, children_count, has_pets, total_price, status, payment_status, notes)
@@ -102,7 +116,7 @@ class ReservationsController {
         
         // Disparar Notificações (Push no celular do Admin e WhatsApp CallMeBot)
         try {
-            require_once __DIR__ . '/../services/NotificationService.php';
+            require_once __DIR__ . '/../services_lib/NotificationService.php';
             NotificationService::notifyNewLead($pdo, [
                 'guest_name' => $guestName,
                 'guest_phone' => $guestPhone,

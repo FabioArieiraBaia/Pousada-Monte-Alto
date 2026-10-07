@@ -62,6 +62,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/servicos" className="text-stone-400 hover:text-amber-400 transition-colors">
+                  {t('nav.services', { defaultValue: 'Passeios & Experiências' })}
+                </Link>
+              </li>
+              <li>
                 <Link to="/sobre-localizacao" className="text-stone-400 hover:text-amber-400 transition-colors">
                   {t('nav.about')}
                 </Link>

@@ -16,15 +16,20 @@ import BlogPostPage from './pages/public/BlogPostPage';
 import ContactPage from './pages/public/ContactPage';
 import GalleryPage from './pages/public/GalleryPage';
 import BeachDetailPage from './pages/public/BeachDetailPage';
+import ServicesPage from './pages/public/ServicesPage';
+import ServiceDetailPage from './pages/public/ServiceDetailPage';
 
 // Admin Pages
 import AdminLayout from './components/admin/AdminLayout';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminHomePage from './pages/admin/AdminHomePage';
 import AdminAIChatPage from './pages/admin/AdminAIChatPage';
 import AdminRoomsPage from './pages/admin/AdminRoomsPage';
+import AdminServicesPage from './pages/admin/AdminServicesPage';
 import AdminAboutPage from './pages/admin/AdminAboutPage';
 import AdminGalleryPage from './pages/admin/AdminGalleryPage';
+import AdminVideoGalleryPage from './pages/admin/AdminVideoGalleryPage';
 import AdminAttractionsPage from './pages/admin/AdminAttractionsPage';
 import AdminReservationsPage from './pages/admin/AdminReservationsPage';
 import AdminFinancePage from './pages/admin/AdminFinancePage';
@@ -84,6 +89,8 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/acomodacoes" element={<AccommodationsPage />} />
             <Route path="/acomodacoes/:slug" element={<RoomDetailPage />} />
+            <Route path="/servicos" element={<ServicesPage />} />
+            <Route path="/servicos/:slug" element={<ServiceDetailPage />} />
             <Route path="/sobre-localizacao" element={<AboutLocationPage />} />
             <Route path="/galeria" element={<GalleryPage />} />
             <Route path="/praias/:slug" element={<BeachDetailPage />} />
@@ -99,10 +106,13 @@ export default function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="home" element={<AdminHomePage />} />
             <Route path="ia" element={<AdminAIChatPage />} />
             <Route path="acomodacoes" element={<AdminRoomsPage />} />
+            <Route path="servicos" element={<AdminServicesPage />} />
             <Route path="sobre" element={<AdminAboutPage />} />
             <Route path="galeria" element={<AdminGalleryPage />} />
+            <Route path="videos" element={<AdminVideoGalleryPage />} />
             <Route path="praias" element={<AdminAttractionsPage />} />
             <Route path="reservas" element={<AdminReservationsPage />} />
             <Route path="financeiro" element={<AdminFinancePage />} />

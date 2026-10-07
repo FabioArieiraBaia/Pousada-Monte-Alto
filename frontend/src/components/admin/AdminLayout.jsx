@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { 
   LayoutDashboard, BedDouble, Calendar, DollarSign, 
   BookOpen, Settings, LogOut, ExternalLink, Menu, X, 
-  ShieldCheck, User, Image as ImageIcon, Compass, Bot
+  ShieldCheck, User, Image as ImageIcon, Compass, Bot, Anchor, Home, Video
 } from 'lucide-react';
 import { getAuthToken, getAuthUser, removeAuthToken, removeAuthUser } from '../../services/api';
 import Logo from '../Logo';
@@ -29,10 +29,13 @@ export default function AdminLayout() {
 
   const navItems = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/admin/home', label: 'Página Inicial (Home)', icon: Home },
     { to: '/admin/ia', label: 'Concierge IA & Leads', icon: Bot },
     { to: '/admin/acomodacoes', label: 'Suítes & Lofts', icon: BedDouble },
+    { to: '/admin/servicos', label: 'Passeios & Serviços', icon: Anchor },
     { to: '/admin/sobre', label: 'Quem Somos & Local', icon: Compass },
     { to: '/admin/galeria', label: 'Galeria de Fotos', icon: ImageIcon },
+    { to: '/admin/videos', label: 'Galeria de Vídeos', icon: Video },
     { to: '/admin/praias', label: 'Guia de Praias', icon: Compass },
     { to: '/admin/reservas', label: 'Reservas & Calendário', icon: Calendar },
     { to: '/admin/financeiro', label: 'Módulo Financeiro', icon: DollarSign },

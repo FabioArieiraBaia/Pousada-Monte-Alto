@@ -1,13 +1,14 @@
 {
   "nav": {
     "home": "Home",
-    "accommodations": "Suites & Loft",
-    "about": "About & Location",
-    "blog": "Tips & Blog",
+    "accommodations": "Accommodations",
+    "services": "Tours",
+    "about": "About",
+    "gallery": "Gallery",
+    "blog": "Blog",
     "contact": "Contact",
     "bookNow": "Book Now",
-    "admin": "Admin Panel",
-    "gallery": "Gallery"
+    "admin": "Admin Panel"
   },
   "hero": {
     "badge": "Beachfront in Monte Alto • Arraial do Cabo",
@@ -19,6 +20,13 @@
     "searchPets": "Traveling with Pet 🐾",
     "searchButton": "Check Availability",
     "allAccommodations": "View All Accommodations"
+  },
+  "search": {
+    "checkin": "Check-in",
+    "checkout": "Check-out",
+    "guests": "Guests",
+    "pets": "Traveling with Pet 🐾",
+    "submit": "Check Availability"
   },
   "home": {
     "featuredRooms": "Our Accommodations",
@@ -44,6 +52,7 @@
     "talkOnWhatsApp": "Chat on WhatsApp"
   },
   "room": {
+    "bookNow": "Book Now",
     "perNight": "per night",
     "maxGuests": "Up to {{count}} guests",
     "petsAllowed": "Pet Friendly 🐾",
@@ -74,6 +83,29 @@
     "checkinInfo": "Check-in from 14:00 | Check-out until 12:00",
     "instantBooking": "Request Booking",
     "bookViaWhatsApp": "Book Direct on WhatsApp"
+  },
+  "amenities": {
+    "wifi": "Fiber Optic Wi-Fi",
+    "ar_condicionado": "Split Air Conditioning",
+    "hidromassagem": "Whirlpool Tub",
+    "cama_king": "King Size Bed",
+    "cama_queen": "Queen Size Bed",
+    "sofa_cama": "Comfortable Sofa Bed",
+    "frigobar": "Minibar",
+    "smart_tv": "Smart TV",
+    "vista_mar": "Ocean View",
+    "vista_lagoa": "Lagoon Sunset View",
+    "cafe_da_manha": "Breakfast Included",
+    "cafe_manha": "Optional Breakfast",
+    "estacionamento": "Free Parking",
+    "pet_friendly": "Pet Friendly",
+    "varanda_com_rede": "Balcony with Hammock",
+    "varanda_rede": "Balcony with Hammock",
+    "cozinha_completa": "Full Kitchen",
+    "churrasqueira": "Private BBQ Grill",
+    "jardim_privativo": "Private Garden",
+    "banheira": "Soaking Tub",
+    "varanda_sunset": "Private Sunset Balcony"
   },
   "booking": {
     "title": "Request a Booking",
@@ -126,6 +158,7 @@
     "backToBeaches": "Back to Beach Guide"
   },
   "blog": {
+    "badge": "Tips & Guides",
     "title": "Pousada Blog",
     "subtitle": "Travel tips, beach guides, local food and hidden gems in Arraial do Cabo",
     "readMore": "Read Full Article",
@@ -147,9 +180,18 @@
     "addressTitle": "Our Address",
     "addressText": "Travessa Américo Reis, Monte Alto District, Arraial do Cabo - RJ, Brazil, ZIP 28930-000",
     "phoneTitle": "Phone & WhatsApp",
+    "whatsappTitle": "WhatsApp & Support",
     "emailTitle": "Guest Support Email",
     "hoursTitle": "Service Hours",
     "hoursText": "Every day from 08:00 to 22:00",
+    "formTitle": "Send a Message",
+    "name": "Full Name",
+    "phone": "Phone / WhatsApp",
+    "email": "Email",
+    "message": "Message",
+    "send": "Send Message",
+    "sentSuccess": "Message sent successfully!",
+    "sentDesc": "Our team will get back to you as soon as possible.",
     "sendMessage": "Send a Message",
     "sendButton": "Send Message"
   },

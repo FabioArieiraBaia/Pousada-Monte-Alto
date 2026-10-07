@@ -1,6 +1,8 @@
 <?php
 // backend/api/controllers/AccommodationsController.php
 
+require_once __DIR__ . '/../services_lib/StayRuleService.php';
+
 class AccommodationsController {
     
     public static function getAll($pdo, $publicOnly = false) {
@@ -272,14 +274,25 @@ class AccommodationsController {
             $stmtPhotos->execute([$acc['id']]);
             $acc['photos'] = $stmtPhotos->fetchAll(PDO::FETCH_COLUMN);
             $acc['cover_photo'] = $acc['photos'][0] ?? null;
-            $acc['calculated_total'] = $days * $acc['base_price'];
             $acc['nights'] = $days;
+
+            // Calculate stay rules, minimum nights, and package price
+            $ruleResult = StayRuleService::validateStay($pdo, $acc['id'], $checkIn, $checkOut);
+            $acc['stay_rule'] = $ruleResult;
+            $acc['min_nights'] = $ruleResult['min_nights'];
+            $acc['is_valid_stay'] = $ruleResult['valid'];
+            $acc['stay_rule_reason'] = $ruleResult['reason'];
+            $acc['is_package'] = $ruleResult['is_package'];
+            $acc['package'] = $ruleResult['package'];
+            $acc['calculated_total'] = $ruleResult['total_price'];
+            $acc['price_per_night'] = $ruleResult['price_per_night'];
 
             $isOccupied = isset($occupiedMap[$acc['id']]);
             $fitsGuests = $acc['max_guests'] >= $guests;
             $fitsPets = ($pets === 0) || ($acc['accepts_pets'] === 1);
+            $meetsMinNights = $ruleResult['valid'];
 
-            $acc['is_available'] = (!$isOccupied && $fitsGuests && $fitsPets);
+            $acc['is_available'] = (!$isOccupied && $fitsGuests && $fitsPets && $meetsMinNights);
             $acc['is_occupied_in_period'] = $isOccupied;
             $acc['conflicts'] = $occupiedMap[$acc['id']] ?? [];
 

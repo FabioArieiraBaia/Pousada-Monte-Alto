@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Edit, Trash2, PawPrint, Eye, 
   Image as ImageIcon, Check, X, Video, Sparkles, DollarSign, Users, AlertCircle, Flame, Tag,
-  Upload, Star, Loader2
+  Upload, Star, Loader2, Calendar, BedDouble
 } from 'lucide-react';
 import YouTubeEmbed from '../../components/YouTubeEmbed';
 import { api } from '../../services/api';
+import AdminPackagesTab from '../../components/admin/AdminPackagesTab';
 
 export default function AdminRoomsPage() {
+  const [activeTab, setActiveTab] = useState('rooms'); // 'rooms' | 'packages'
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -217,28 +219,62 @@ export default function AdminRoomsPage() {
   return (
     <div className="space-y-6">
       
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-stone-200/80 shadow-sm">
-        <div>
-          <h2 className="font-serif text-2xl font-bold text-stone-900">
-            Gerenciador de Acomodações
-          </h2>
-          <p className="text-stone-500 text-xs mt-1">
-            Cadastre suítes, lofts, faça upload de fotos, defina tarifas promocionais e comodidades
-          </p>
-        </div>
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-stone-200 pb-2">
+        <button
+          onClick={() => setActiveTab('rooms')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+            activeTab === 'rooms'
+              ? 'bg-stone-900 text-white shadow-sm'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
+        >
+          <BedDouble className="w-4 h-4 text-amber-500" />
+          <span>Suítes & Lofts ({rooms.length})</span>
+        </button>
 
         <button
-          onClick={() => handleOpenModal()}
-          className="inline-flex items-center gap-2 bg-stone-900 hover:bg-amber-600 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-sm transition-colors"
+          onClick={() => setActiveTab('packages')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+            activeTab === 'packages'
+              ? 'bg-stone-900 text-white shadow-sm'
+              : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+          }`}
         >
-          <Plus className="w-4 h-4" />
-          <span>Cadastrar Nova Acomodação</span>
+          <Calendar className="w-4 h-4 text-amber-500" />
+          <span>Pacotes & Períodos Especiais</span>
+          <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full ml-1">
+            Réveillon & Carnaval
+          </span>
         </button>
       </div>
 
-      {/* Grid of Rooms */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {activeTab === 'packages' ? (
+        <AdminPackagesTab rooms={rooms} />
+      ) : (
+        <>
+          {/* Top Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-stone-200/80 shadow-sm">
+            <div>
+              <h2 className="font-serif text-2xl font-bold text-stone-900">
+                Gerenciador de Acomodações
+              </h2>
+              <p className="text-stone-500 text-xs mt-1">
+                Cadastre suítes, lofts, faça upload de fotos, defina tarifas promocionais e comodidades
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleOpenModal()}
+              className="inline-flex items-center gap-2 bg-stone-900 hover:bg-amber-600 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-sm transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Cadastrar Nova Acomodação</span>
+            </button>
+          </div>
+
+          {/* Grid of Rooms */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {rooms.map((room) => {
           const cover = room.cover_photo || (room.photos && room.photos[0]?.photo_url) || 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80';
           const isPet = Number(room.accepts_pets) === 1;
@@ -359,6 +395,8 @@ export default function AdminRoomsPage() {
           );
         })}
       </div>
+      </>
+      )}
 
       {/* Modal CRUD Room */}
       {modalOpen && (

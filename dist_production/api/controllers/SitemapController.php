@@ -144,6 +144,38 @@ function renderDynamicSitemap($pdo) {
     echo "    <priority>0.7</priority>\n";
     echo "  </url>\n\n";
 
+    // 8. Services / Tours Listing & Details
+    echo "  <!-- Passeios & Experiências -->\n";
+    echo "  <url>\n";
+    echo "    <loc>{$baseUrl}/servicos</loc>\n";
+    echo "    <lastmod>{$today}</lastmod>\n";
+    echo "    <changefreq>weekly</changefreq>\n";
+    echo "    <priority>0.85</priority>\n";
+    echo "  </url>\n\n";
+
+    $stmtServices = $pdo->query("SELECT slug, name_pt, cover_photo, updated_at FROM services WHERE is_active = 1");
+    if ($stmtServices) {
+        while ($srv = $stmtServices->fetch(PDO::FETCH_ASSOC)) {
+            $srvUrl = "{$baseUrl}/servicos/{$srv['slug']}";
+            $srvDate = date('Y-m-d', strtotime($srv['updated_at'] ?: $today));
+            $srvTitle = htmlspecialchars($srv['name_pt'], ENT_QUOTES, 'UTF-8');
+            echo "  <url>\n";
+            echo "    <loc>{$srvUrl}</loc>\n";
+            echo "    <lastmod>{$srvDate}</lastmod>\n";
+            echo "    <changefreq>weekly</changefreq>\n";
+            echo "    <priority>0.8</priority>\n";
+            if (!empty($srv['cover_photo'])) {
+                $img = htmlspecialchars($srv['cover_photo'], ENT_QUOTES, 'UTF-8');
+                echo "    <image:image>\n";
+                echo "      <image:loc>{$img}</image:loc>\n";
+                echo "      <image:title>{$srvTitle}</image:title>\n";
+                echo "    </image:image>\n";
+            }
+            echo "  </url>\n";
+        }
+    }
+    echo "\n";
+
     echo '</urlset>';
     exit();
 }

@@ -48,6 +48,7 @@ export default function Navbar() {
   const navLinks = [
     { to: '/', label: t('nav.home') },
     { to: '/acomodacoes', label: t('nav.accommodations') },
+    { to: '/servicos', label: t('nav.services', { defaultValue: 'Passeios' }) },
     { to: '/sobre-localizacao', label: t('nav.about') },
     { to: '/galeria', label: t('nav.gallery', { defaultValue: 'Galeria' }) },
     { to: '/blog', label: t('nav.blog') },
@@ -62,22 +63,22 @@ export default function Navbar() {
           : 'bg-gradient-to-b from-stone-950/80 to-transparent py-4 text-white'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-2 xl:gap-4">
         
         {/* Official Brand Logo */}
-        <Link to="/" className="flex items-center">
+        <Link to="/" className="flex items-center shrink-0">
           <Logo variant={scrolled ? 'dark' : 'light'} size="sm" />
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+        <nav className="hidden lg:flex items-center gap-3.5 xl:gap-6">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.to;
             return (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`text-sm font-medium transition-colors hover:text-amber-500 relative py-1 ${
+                className={`text-xs xl:text-sm font-medium transition-colors hover:text-amber-500 relative py-1 whitespace-nowrap ${
                   isActive 
                     ? 'text-amber-500 font-semibold' 
                     : scrolled ? 'text-stone-700' : 'text-stone-100'
@@ -93,7 +94,7 @@ export default function Navbar() {
         </nav>
 
         {/* Right Actions: Lang + WhatsApp + CTA */}
-        <div className="hidden md:flex items-center gap-3.5">
+        <div className="hidden lg:flex items-center gap-2.5 xl:gap-3.5 shrink-0">
           {/* Language Selector */}
           <div className="relative">
             <button
@@ -144,7 +145,7 @@ export default function Navbar() {
           {/* Book Now Button */}
           <Link
             to="/acomodacoes"
-            className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-semibold text-xs uppercase tracking-wider px-4 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
+            className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-semibold text-xs uppercase tracking-wider px-3.5 py-2 xl:px-4 xl:py-2.5 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 whitespace-nowrap"
           >
             <Calendar className="w-3.5 h-3.5" />
             <span>{t('nav.bookNow')}</span>
@@ -152,7 +153,7 @@ export default function Navbar() {
         </div>
 
         {/* Mobile Menu Button */}
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex lg:hidden items-center gap-2">
           {/* Quick Lang toggle on mobile */}
           <button
             onClick={() => setLangMenuOpen(!langMenuOpen)}
@@ -175,7 +176,7 @@ export default function Navbar() {
 
       {/* Mobile Drawer (Clean, No Duplicate Logo) */}
       {isOpen && (
-        <div className="md:hidden bg-stone-900/95 backdrop-blur-xl border-t border-white/10 text-white px-6 py-6 space-y-4 animate-fade-in shadow-2xl">
+        <div className="lg:hidden bg-stone-900/95 backdrop-blur-xl border-t border-white/10 text-white px-6 py-6 space-y-4 animate-fade-in shadow-2xl">
           <nav className="flex flex-col space-y-2">
             {navLinks.map((link) => (
               <Link

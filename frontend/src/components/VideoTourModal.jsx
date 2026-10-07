@@ -2,8 +2,10 @@ import React from 'react';
 import { X, Video, Sparkles, MapPin } from 'lucide-react';
 import YouTubeEmbed from './YouTubeEmbed';
 
-export default function VideoTourModal({ isOpen, onClose }) {
+export default function VideoTourModal({ isOpen, onClose, videoUrl }) {
   if (!isOpen) return null;
+
+  const finalVideoUrl = videoUrl || "https://www.youtube.com/watch?v=0kH8s4Ue7w8";
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
@@ -36,7 +38,7 @@ export default function VideoTourModal({ isOpen, onClose }) {
         {/* Video Player */}
         <div className="p-4 sm:p-6 bg-black">
           <YouTubeEmbed
-            url="https://www.youtube.com/watch?v=0kH8s4Ue7w8"
+            url={finalVideoUrl}
             title="Tour Virtual Pousada Monte Alto"
           />
         </div>

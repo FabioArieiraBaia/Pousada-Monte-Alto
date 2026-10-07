@@ -1,9 +1,9 @@
 <?php
 
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
-require_once __DIR__ . '/../services/WebPushService.php';
-require_once __DIR__ . '/../services/WhatsAppNotificationService.php';
-require_once __DIR__ . '/../services/NotificationService.php';
+require_once __DIR__ . '/../services_lib/WebPushService.php';
+require_once __DIR__ . '/../services_lib/WhatsAppNotificationService.php';
+require_once __DIR__ . '/../services_lib/NotificationService.php';
 
 class NotificationController {
 

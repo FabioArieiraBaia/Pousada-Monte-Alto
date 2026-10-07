@@ -1,4 +1,4 @@
-﻿import api from './api';
+import api from './api';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -35,8 +35,9 @@ export const pushNotificationService = {
   async registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return null;
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/'
+      const base = (typeof window !== 'undefined' && window.location.pathname.startsWith('/montealto')) ? '/montealto' : '';
+      const registration = await navigator.serviceWorker.register(`${base}/sw.js`, {
+        scope: `${base}/`
       });
       await navigator.serviceWorker.ready;
       return registration;

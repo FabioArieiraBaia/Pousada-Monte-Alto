@@ -13,7 +13,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 // Register PWA Service Worker for Push Notifications
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
+    const base = window.location.pathname.startsWith('/montealto') ? '/montealto' : '';
+    navigator.serviceWorker.register(`${base}/sw.js`, { scope: `${base}/` }).catch((err) => {
       console.warn('SW register:', err);
     });
   });

@@ -110,6 +110,20 @@ export const api = {
     method: 'DELETE'
   }),
 
+  // Video Gallery (YouTube & Instagram)
+  getVideoGallery: () => request('/videos'),
+  createVideoGalleryItem: (data) => request('/videos', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateVideoGalleryItem: (id, data) => request(`/videos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  deleteVideoGalleryItem: (id) => request(`/videos/${id}`, {
+    method: 'DELETE'
+  }),
+
   // Reservations
   getReservations: () => request('/reservations'),
   getReservationsCalendar: (month) => request(`/reservations/calendar?month=${month || ''}`),
@@ -261,7 +275,107 @@ export const api = {
   testWhatsAppNotification: (data) => request('/notifications/test-whatsapp', {
     method: 'POST',
     body: JSON.stringify(data)
-  })
+  }),
+
+  // Packages & Special Periods
+  getPackages: () => request('/packages'),
+  getPackageById: (id) => request(`/packages/${id}`),
+  createPackage: (data) => request('/packages', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updatePackage: (id, data) => request(`/packages/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  togglePackage: (id) => request(`/packages/${id}/toggle`, {
+    method: 'PUT'
+  }),
+  deletePackage: (id) => request(`/packages/${id}`, {
+    method: 'DELETE'
+  }),
+
+  // Services / Tours / Experiences
+  getServices: async (publicOnly = true) => {
+    try {
+      return await request(publicOnly ? '/services' : '/services/admin');
+    } catch (e) {
+      if (publicOnly) {
+        return await request('/passeios');
+      }
+      throw e;
+    }
+  },
+  getServiceBySlug: async (slug) => {
+    try {
+      return await request(`/services/${slug}`);
+    } catch (e) {
+      return await request(`/passeios/${slug}`);
+    }
+  },
+  createService: (data) => request('/services', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateService: (id, data) => request(`/services/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  toggleService: (id) => request(`/services/${id}/toggle`, {
+    method: 'PUT'
+  }),
+  deleteService: (id) => request(`/services/${id}`, {
+    method: 'DELETE'
+  }),
+
+  // Service Bookings (Reservas de Passeios)
+  getServiceBookings: (month, status, service_id) => {
+    const params = new URLSearchParams();
+    if (month) params.append('month', month);
+    if (status) params.append('status', status);
+    if (service_id) params.append('service_id', service_id);
+    const qs = params.toString();
+    return request(`/service-bookings${qs ? '?' + qs : ''}`);
+  },
+  createPublicServiceBooking: (data) => request('/service-bookings/request', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  createAdminServiceBooking: (data) => request('/service-bookings', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateServiceBookingStatus: (id, status, payment_status, notes, payment_method) => request(`/service-bookings/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status, payment_status, notes, payment_method })
+  }),
+  cancelServiceBooking: (id, data) => request(`/service-bookings/${id}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  getServiceBookingWhatsAppLink: (id) => request(`/service-bookings/${id}/whatsapp`),
+  deleteServiceBooking: (id) => request(`/service-bookings/${id}`, {
+    method: 'DELETE'
+  }),
+
+  // Service Finance (Financeiro Exclusivo de Serviços & Parceiros)
+  getServiceFinanceSummary: (month) => request(`/service-finance/summary${month ? '?month=' + month : ''}`),
+  getServiceFinanceTransactions: (type, month, category) => {
+    const params = new URLSearchParams();
+    if (type) params.append('type', type);
+    if (month) params.append('month', month);
+    if (category) params.append('category', category);
+    const qs = params.toString();
+    return request(`/service-finance/transactions${qs ? '?' + qs : ''}`);
+  },
+  createServiceFinanceTransaction: (data) => request('/service-finance/transactions', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  deleteServiceFinanceTransaction: (id) => request(`/service-finance/transactions/${id}`, {
+    method: 'DELETE'
+  }),
+  getServiceFinanceExportCsvUrl: (month) => `${API_BASE_URL}/service-finance/export-csv${month ? '?month=' + month : ''}`
 };
 
 export default api;

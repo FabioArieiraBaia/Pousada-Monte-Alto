@@ -1,6 +1,8 @@
 <?php
 // backend/api/controllers/ChatController.php
 
+require_once __DIR__ . '/../services_lib/StayRuleService.php';
+
 class ChatController {
 
     private static $defaultKeys = [];
@@ -65,46 +67,21 @@ class ChatController {
      * Calculate price estimation for given accommodation and date range
      */
     public static function calculateStayPrice($pdo, $accommodationId, $checkIn, $checkOut) {
-        $stmt = $pdo->prepare("SELECT * FROM accommodations WHERE id = ?");
-        $stmt->execute([$accommodationId]);
-        $acc = $stmt->fetch();
-        if (!$acc) return null;
-
-        $startDate = new DateTime($checkIn);
-        $endDate = new DateTime($checkOut);
-        if ($endDate <= $startDate) return null;
-
-        $nights = $startDate->diff($endDate)->days;
-        if ($nights <= 0) return null;
-
-        // Fetch seasonal prices
-        $stmtSeason = $pdo->prepare("SELECT * FROM seasonal_prices WHERE accommodation_id = ?");
-        $stmtSeason->execute([$accommodationId]);
-        $seasons = $stmtSeason->fetchAll();
-
-        $total = 0;
-        $current = clone $startDate;
-
-        for ($i = 0; $i < $nights; $i++) {
-            $dateStr = $current->format('Y-m-d');
-            $nightPrice = (float)$acc['base_price'];
-
-            foreach ($seasons as $s) {
-                if ($dateStr >= $s['start_date'] && $dateStr <= $s['end_date']) {
-                    $nightPrice = (float)$s['price_per_night'];
-                    break;
-                }
-            }
-
-            $total += $nightPrice;
-            $current->modify('+1 day');
+        $rule = StayRuleService::validateStay($pdo, $accommodationId, $checkIn, $checkOut);
+        if (!$rule['valid'] && empty($rule['total_price'])) {
+            return null;
         }
 
         return [
-            'accommodation' => $acc['name_pt'],
-            'nights' => $nights,
-            'total' => $total,
-            'average_per_night' => round($total / $nights, 2)
+            'accommodation' => $rule['accommodation']['name'],
+            'nights' => $rule['nights'],
+            'total' => $rule['total_price'],
+            'average_per_night' => $rule['price_per_night'],
+            'is_package' => $rule['is_package'],
+            'package' => $rule['package'],
+            'min_nights' => $rule['min_nights'],
+            'valid' => $rule['valid'],
+            'reason' => $rule['reason']
         ];
     }
 
@@ -324,11 +301,16 @@ class ChatController {
         $stmtAtt = $pdo->query("SELECT name_pt, duration_badge_pt, distance_label_pt, description_pt FROM tourist_attractions WHERE is_active = 1");
         $attractions = $stmtAtt->fetchAll();
 
+        // Services / Tours
+        $stmtServ = $pdo->query("SELECT id, slug, category, name_pt, duration_label, price_per_person, description_pt FROM services WHERE is_active = 1");
+        $services = $stmtServ ? $stmtServ->fetchAll() : [];
+
         return [
             'accommodations' => $accommodations,
             'seasons' => $seasons,
             'settings' => $settings,
-            'attractions' => $attractions
+            'attractions' => $attractions,
+            'services' => $services
         ];
     }
 
@@ -339,6 +321,31 @@ class ChatController {
         }
         $accText = implode("\n", $accList);
 
+        $servList = [];
+        foreach (($knowledge['services'] ?? []) as $s) {
+            $servList[] = "- Passeio: {$s['name_pt']} | Categoria: {$s['category']} | Duração: {$s['duration_label']} | Valor: R$ " . number_format($s['price_per_person'], 2, ',', '.') . "/pessoa | Descrição: {$s['description_pt']}";
+        }
+        $servText = !empty($servList) ? implode("\n", $servList) : "Passeios de barco, mergulho e buggy disponíveis sob consulta.";
+
+        $seasonsList = [];
+        foreach (($knowledge['seasons'] ?? []) as $sn) {
+            $startDateFmt = date('d/m/Y', strtotime($sn['start_date']));
+            $endDateFmt = date('d/m/Y', strtotime($sn['end_date']));
+            $seasonsList[] = "- Pacote/Período: {$sn['label']} (Acomodação ID: {$sn['accommodation_id']}) | De {$startDateFmt} a {$endDateFmt} | Valor Especial: R$ " . number_format($sn['price_per_night'], 2, ',', '.') . "/diária";
+        }
+        $seasonsText = !empty($seasonsList) ? implode("\n", $seasonsList) : "Sem pacotes sazonais específicos no momento (aplicam-se as diárias base cadastradas).";
+
+        // Âncoras temporais dinâmicas do sistema (Fuso horário de Brasília)
+        date_default_timezone_set('America/Sao_Paulo');
+        $diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        $diaSemanaAtual = $diasSemana[(int)date('w')];
+        $dataHoje = date('d/m/Y');
+        $horaAtual = date('H:i');
+        $anoAtual = date('Y');
+        $anoSeguinte = (int)$anoAtual + 1;
+        $exCheckIn = date('Y-m-d', strtotime('+7 days'));
+        $exCheckOut = date('Y-m-d', strtotime('+10 days'));
+
         $promoMode = ($knowledge['settings']['promo_mode'] ?? '1') === '1';
         $promoBadge = $knowledge['settings']['promo_badge'] ?? 'Oferta Especial';
         $promoText = $knowledge['settings']['promo_text'] ?? 'Valores Promocionais Sob Consulta';
@@ -348,8 +355,17 @@ class ChatController {
         $prompt = <<<PROMPT
 Você é a {$aiConfig['agent_name']}, a Concierge e Vendedora Virtual oficial da "Pousada Monte Alto", localizada no charmoso distrito de Monte Alto em Arraial do Cabo - RJ.
 
+CONTEXTO TEMPORAL OBRIGATÓRIO (ÂNCORA TEMPORAL):
+- DATA E HORA ATUAL DO SISTEMA: {$diaSemanaAtual}, {$dataHoje} às {$horaAtual} (Horário de Brasília).
+- ANO VIGENTE ATUAL: {$anoAtual}.
+- ATENÇÃO RIGOROSA DE TEMPO: O ano atual é impreterivelmente {$anoAtual}. NUNCA suponha, afirme ou responda que estamos em 2024 ou 2025.
+- CÁLCULO DE DATAS E RESERVAS: Todas as cotações, feriados (Réveillon, Carnaval, etc.) e estadias devem ser calculadas considerando o ano {$anoAtual} ou {$anoSeguinte}.
+- Se o visitante disser apenas o mês ou feriado sem o ano (ex: "em novembro", "no réveillon"):
+  * Se o período ainda vai acontecer neste ano, considere {$anoAtual}.
+  * Se o período já passou em {$anoAtual}, entenda imediatamente como {$anoSeguinte}.
+
 SUA MISSÃO PRINCIPAL:
-Encantar o visitante, tirar dúvidas com simpatia e autoridade local, filtrar as necessidades do lead (datas, número de hóspedes, se traz pets), ESTIMAR VALORES DE ESTADIA e CONDUZIR O CLIENTE PARA O FECHAMENTO DA PRÉ-RESERVA e contato com o WhatsApp da Pousada.
+Encantar o visitante, tirar dúvidas com simpatia e autoridade local, filtrar as necessidades do lead (datas, número de hóspedes, se traz pets, passeios desejados), ESTIMAR VALORES DE ESTADIA E PASSEIOS e CONDUZIR O CLIENTE PARA O FECHAMENTO DA PRÉ-RESERVA e contato com o WhatsApp da Pousada.
 
 INFORMAÇÕES EXCLUSIVAS DA POUSADA MONTE ALTO (USE COMO ARGUMENTO DE VENDA IMBATÍVEL):
 1. PÉ NA AREIA REAL: A pousada fica a poucos passos da orla da Praia de Monte Alto (mar calmo, restinga preservada, sem o tumulto e superlotação das praias do centro).
@@ -360,6 +376,12 @@ INFORMAÇÕES EXCLUSIVAS DA POUSADA MONTE ALTO (USE COMO ARGUMENTO DE VENDA IMBA
 
 SUÍTES & LOFTS CADASTRADOS NA POUSADA:
 {$accText}
+
+PACOTES ESPECIAIS & TARIFAS SAZONAIS VIGENTES:
+{$seasonsText}
+
+PASSEIOS E EXPERIÊNCIAS OFERECIDOS PELA POUSADA:
+{$servText}
 
 MODO DE TARIFAS ATUAL:
 PROMO_MODE: {$promoMode} (Texto exibido no site: "{$promoBadge} - {$promoText}")
@@ -374,7 +396,7 @@ Quando o cliente manifestar intenção clara de reserva e você tiver (ou ele fo
 - Nome do cliente
 - Telefone / WhatsApp
 - Nome ou ID da acomodação
-- Data de Check-in e Check-out (formato YYYY-MM-DD)
+- Data de Check-in e Check-out (formato YYYY-MM-DD, ano {$anoAtual} ou {$anoSeguinte})
 - Quantidade de hóspedes e se traz pets
 
 Você DEVE incluir no FINAL da sua resposta exatamente o bloco JSON com a tag:
@@ -384,8 +406,8 @@ Você DEVE incluir no FINAL da sua resposta exatamente o bloco JSON com a tag:
   "guest_phone": "Telefone ou WhatsApp",
   "guest_email": "Email se houver ou vazio",
   "accommodation_id": 1,
-  "check_in": "2026-10-15",
-  "check_out": "2026-10-18",
+  "check_in": "{$exCheckIn}",
+  "check_out": "{$exCheckOut}",
   "guests": 2,
   "has_pets": 0,
   "notes": "Observações relevantes da conversa"
@@ -560,7 +582,7 @@ PROMPT;
 
                     // Disparar Notificações (Push no celular do Admin e WhatsApp CallMeBot)
                     try {
-                        require_once __DIR__ . '/../services/NotificationService.php';
+                        require_once __DIR__ . '/../services_lib/NotificationService.php';
                         NotificationService::notifyNewLead($pdo, [
                             'guest_name' => $guestName,
                             'guest_phone' => $guestPhone,
@@ -672,7 +694,7 @@ PROMPT;
 
                 // Notificar admin imediatamente
                 try {
-                    require_once __DIR__ . '/../services/NotificationService.php';
+                    require_once __DIR__ . '/../services_lib/NotificationService.php';
                     NotificationService::notifyNewLead($pdo, [
                         'guest_name' => $capturedName,
                         'guest_phone' => $capturedPhone,

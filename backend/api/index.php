@@ -16,11 +16,16 @@ require_once __DIR__ . '/controllers/FinanceController.php';
 require_once __DIR__ . '/controllers/BlogController.php';
 require_once __DIR__ . '/controllers/SettingsController.php';
 require_once __DIR__ . '/controllers/GalleryController.php';
+require_once __DIR__ . '/controllers/VideoGalleryController.php';
 require_once __DIR__ . '/controllers/AttractionsController.php';
 require_once __DIR__ . '/controllers/UploadController.php';
 require_once __DIR__ . '/controllers/ChatController.php';
 require_once __DIR__ . '/controllers/NotificationController.php';
 require_once __DIR__ . '/controllers/DashboardController.php';
+require_once __DIR__ . '/controllers/PackagesController.php';
+require_once __DIR__ . '/controllers/ServicesController.php';
+require_once __DIR__ . '/controllers/ServiceBookingsController.php';
+require_once __DIR__ . '/controllers/ServiceFinanceController.php';
 
 $pdo = getDatabaseConnection();
 
@@ -108,6 +113,118 @@ try {
         exit();
     }
 
+    // --- PACKAGES ROUTES ---
+    if ($path === '/packages' && $method === 'GET') {
+        PackagesController::getAll($pdo);
+        exit();
+    }
+    if ($path === '/packages' && $method === 'POST') {
+        PackagesController::create($pdo);
+        exit();
+    }
+    if (preg_match('#^/packages/(\d+)/toggle$#', $path, $m) && $method === 'PUT') {
+        PackagesController::toggle($pdo, $m[1]);
+        exit();
+    }
+    if (preg_match('#^/packages/(\d+)$#', $path, $m)) {
+        if ($method === 'GET') {
+            PackagesController::getById($pdo, $m[1]);
+            exit();
+        } elseif ($method === 'PUT') {
+            PackagesController::update($pdo, $m[1]);
+            exit();
+        } elseif ($method === 'DELETE') {
+            PackagesController::delete($pdo, $m[1]);
+            exit();
+        }
+    }
+
+    // --- SERVICES / TOURS ROUTES ---
+    if (($path === '/services' || $path === '/passeios' || $path === '/tours') && $method === 'GET') {
+        ServicesController::getAll($pdo, true);
+        exit();
+    }
+    if (($path === '/services/admin' || $path === '/passeios/admin') && $method === 'GET') {
+        ServicesController::getAll($pdo, false);
+        exit();
+    }
+    if (($path === '/services' || $path === '/passeios') && $method === 'POST') {
+        ServicesController::create($pdo);
+        exit();
+    }
+    if (preg_match('#^/(?:services|passeios)/(\d+)/toggle$#', $path, $m) && $method === 'PUT') {
+        ServicesController::toggle($pdo, $m[1]);
+        exit();
+    }
+    if (preg_match('#^/(?:services|passeios)/(\d+)$#', $path, $m)) {
+        if ($method === 'GET') {
+            ServicesController::getById($pdo, $m[1]);
+            exit();
+        } elseif ($method === 'PUT') {
+            ServicesController::update($pdo, $m[1]);
+            exit();
+        } elseif ($method === 'DELETE') {
+            ServicesController::delete($pdo, $m[1]);
+            exit();
+        }
+    }
+    if (preg_match('#^/(?:services|passeios|tours)/([^/]+)$#', $path, $m) && $method === 'GET') {
+        ServicesController::getBySlug($pdo, $m[1]);
+        exit();
+    }
+
+    // --- SERVICE BOOKINGS ROUTES ---
+    if ($path === '/service-bookings' && $method === 'GET') {
+        ServiceBookingsController::getAll($pdo);
+        exit();
+    }
+    if ($path === '/service-bookings/request' && $method === 'POST') {
+        ServiceBookingsController::createPublic($pdo);
+        exit();
+    }
+    if ($path === '/service-bookings' && $method === 'POST') {
+        ServiceBookingsController::createAdmin($pdo);
+        exit();
+    }
+    if (preg_match('#^/service-bookings/(\d+)/status$#', $path, $m) && $method === 'PUT') {
+        ServiceBookingsController::updateStatus($pdo, $m[1]);
+        exit();
+    }
+    if (preg_match('#^/service-bookings/(\d+)/cancel$#', $path, $m) && $method === 'POST') {
+        ServiceBookingsController::cancel($pdo, $m[1]);
+        exit();
+    }
+    if (preg_match('#^/service-bookings/(\d+)/whatsapp$#', $path, $m) && $method === 'GET') {
+        ServiceBookingsController::getWhatsAppLink($pdo, $m[1]);
+        exit();
+    }
+    if (preg_match('#^/service-bookings/(\d+)$#', $path, $m) && $method === 'DELETE') {
+        ServiceBookingsController::delete($pdo, $m[1]);
+        exit();
+    }
+
+    // --- SERVICE FINANCE ROUTES ---
+    if ($path === '/service-finance/summary' && $method === 'GET') {
+        ServiceFinanceController::getSummary($pdo);
+        exit();
+    }
+    if ($path === '/service-finance/transactions' && $method === 'GET') {
+        ServiceFinanceController::getTransactions($pdo);
+        exit();
+    }
+    if ($path === '/service-finance/transactions' && $method === 'POST') {
+        ServiceFinanceController::createTransaction($pdo);
+        exit();
+    }
+    if (preg_match('#^/service-finance/transactions/(\d+)$#', $path, $m) && $method === 'DELETE') {
+        ServiceFinanceController::deleteTransaction($pdo, $m[1]);
+        exit();
+    }
+    if ($path === '/service-finance/export-csv' && $method === 'GET') {
+        ServiceFinanceController::exportCsv($pdo);
+        exit();
+    }
+
     
     // --- ATTRACTIONS / BEACHES ROUTES ---
     if ($path === '/attractions' && $method === 'GET') {
@@ -147,6 +264,25 @@ try {
             exit();
         } elseif ($method === 'DELETE') {
             GalleryController::delete($pdo, $m[1]);
+            exit();
+        }
+    }
+
+    // --- VIDEO GALLERY ROUTES ---
+    if (($path === '/videos' || $path === '/video-gallery') && $method === 'GET') {
+        VideoGalleryController::getAll($pdo);
+        exit();
+    }
+    if (($path === '/videos' || $path === '/video-gallery') && $method === 'POST') {
+        VideoGalleryController::create($pdo);
+        exit();
+    }
+    if (preg_match('#^/(?:videos|video-gallery)/(\d+)$#', $path, $m)) {
+        if ($method === 'PUT') {
+            VideoGalleryController::update($pdo, $m[1]);
+            exit();
+        } elseif ($method === 'DELETE') {
+            VideoGalleryController::delete($pdo, $m[1]);
             exit();
         }
     }
@@ -334,7 +470,7 @@ try {
             $stmt = $pdo->prepare("INSERT INTO leads_capture (name, whatsapp, email, notes, status) VALUES (?, ?, ?, ?, 'new')");
             $stmt->execute([$name, $phone, $email, $message]);
             
-            require_once __DIR__ . '/services/NotificationService.php';
+            require_once __DIR__ . '/services_lib/NotificationService.php';
             NotificationService::notifyNewLead($pdo, [
                 'name' => $name,
                 'phone' => $phone,

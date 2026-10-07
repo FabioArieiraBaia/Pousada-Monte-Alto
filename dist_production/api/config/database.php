@@ -200,6 +200,18 @@ function initDatabase($pdo) {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
+    // 9.5 Video Gallery Items (YouTube & Instagram)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS video_gallery_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        video_url TEXT NOT NULL,
+        video_type TEXT DEFAULT 'youtube',
+        category TEXT DEFAULT 'geral',
+        cover_url TEXT DEFAULT '',
+        order_index INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
     // 10. Tourist Attractions / Beaches Guide
     $pdo->exec("CREATE TABLE IF NOT EXISTS tourist_attractions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -284,6 +296,113 @@ function initDatabase($pdo) {
         last_used_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
+    // 14. Packages & Special Periods (Réveillon, Carnaval, Feriados)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS packages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        is_active INTEGER DEFAULT 1,
+        description TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS package_accommodations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        package_id INTEGER NOT NULL,
+        accommodation_id INTEGER NOT NULL,
+        price_per_night REAL NOT NULL,
+        min_nights INTEGER NOT NULL DEFAULT 2,
+        is_active INTEGER DEFAULT 1,
+        FOREIGN KEY (package_id) REFERENCES packages(id) ON DELETE CASCADE,
+        FOREIGN KEY (accommodation_id) REFERENCES accommodations(id) ON DELETE CASCADE
+    )");
+
+    // 15. Services / Tours / Experiences
+    $pdo->exec("CREATE TABLE IF NOT EXISTS services (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        slug TEXT UNIQUE NOT NULL,
+        category TEXT NOT NULL DEFAULT 'barco',
+        name_pt TEXT NOT NULL,
+        name_en TEXT NOT NULL,
+        name_es TEXT NOT NULL,
+        tagline_pt TEXT,
+        tagline_en TEXT,
+        tagline_es TEXT,
+        description_pt TEXT,
+        description_en TEXT,
+        description_es TEXT,
+        duration_label TEXT,
+        price_per_person REAL NOT NULL DEFAULT 0,
+        partner_name TEXT,
+        partner_commission_pct REAL DEFAULT 20.0,
+        partner_cost REAL DEFAULT 0.0,
+        min_participants INTEGER DEFAULT 1,
+        max_participants INTEGER DEFAULT 12,
+        included_items_json TEXT,
+        requirements_json TEXT,
+        cover_photo TEXT NOT NULL,
+        gallery_photos_json TEXT,
+        youtube_video_url TEXT,
+        instagram_video_url TEXT,
+        facebook_video_url TEXT,
+        is_featured INTEGER DEFAULT 0,
+        is_active INTEGER DEFAULT 1,
+        order_index INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    try {
+        $pdo->query("SELECT instagram_video_url FROM services LIMIT 1");
+    } catch (Exception $e) {
+        $pdo->exec("ALTER TABLE services ADD COLUMN instagram_video_url TEXT");
+    }
+    try {
+        $pdo->query("SELECT facebook_video_url FROM services LIMIT 1");
+    } catch (Exception $e) {
+        $pdo->exec("ALTER TABLE services ADD COLUMN facebook_video_url TEXT");
+    }
+
+    // 16. Service Bookings (Reservas de Passeios)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS service_bookings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        service_id INTEGER NOT NULL,
+        customer_name TEXT NOT NULL,
+        customer_phone TEXT NOT NULL,
+        customer_email TEXT,
+        service_date DATE NOT NULL,
+        service_time TEXT DEFAULT '09:00',
+        participants_count INTEGER NOT NULL DEFAULT 1,
+        unit_price REAL NOT NULL,
+        total_price REAL NOT NULL,
+        pousada_commission REAL DEFAULT 0.0,
+        partner_cost REAL DEFAULT 0.0,
+        status TEXT DEFAULT 'pending', -- pending, confirmed, completed, cancelled
+        payment_status TEXT DEFAULT 'unpaid', -- unpaid, partial, paid, refunded
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
+    )");
+
+    // 17. Service Financial Transactions (Financeiro exclusivo de serviços)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS service_financial_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        service_booking_id INTEGER NULL,
+        service_id INTEGER NULL,
+        type TEXT NOT NULL, -- income, expense, commission
+        category TEXT NOT NULL, -- reserva_servico, repasse_parceiro, taxa_embarque, outros
+        amount REAL NOT NULL,
+        payment_method TEXT DEFAULT 'pix',
+        transaction_date DATE NOT NULL,
+        description TEXT NOT NULL,
+        status TEXT DEFAULT 'completed',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (service_booking_id) REFERENCES service_bookings(id) ON DELETE SET NULL,
+        FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE SET NULL
+    )");
+
     // Seed default ai_settings row if empty
     try {
         $checkAI = $pdo->query("SELECT COUNT(*) as count FROM ai_settings")->fetch();
@@ -295,6 +414,8 @@ function initDatabase($pdo) {
 
     seedInitialData($pdo);
     seedAttractionsAndGalleryIfEmpty($pdo);
+    seedPackagesIfEmpty($pdo);
+    seedServicesIfEmpty($pdo);
 }
 
 function seedInitialData($pdo) {
@@ -689,4 +810,232 @@ function seedAttractionsAndGalleryIfEmpty($pdo) {
             $stmtGIns->execute([$g[0], $g[1], $g[2], $g[3]]);
         }
     }
+
+    // 2.5. Seed Video Gallery if empty
+    $stmtVG = $pdo->query("SELECT COUNT(*) as count FROM video_gallery_items");
+    if ($stmtVG->fetch()['count'] == 0) {
+        $videoGallery = [
+            ['Tour Virtual Completo pela Pousada', 'https://www.youtube.com/watch?v=0kH8s4Ue7w8', 'youtube', 'pousada', 1],
+            ['Pôr do Sol Dourado na Lagoa de Araruama', 'https://www.youtube.com/shorts/3X9vV3sK4pE', 'shorts', 'lagoa', 2],
+            ['Praia de Monte Alto - Pé na Areia & Voo de Drone', 'https://www.instagram.com/reel/C8qL0PkuXYZ/', 'reels', 'praia', 3],
+            ['Experiência de Passeio de Barco Caribe Brasileiro', 'https://www.youtube.com/watch?v=0kH8s4Ue7w8', 'youtube', 'experiencias', 4]
+        ];
+        $stmtVGIns = $pdo->prepare("INSERT INTO video_gallery_items (title, video_url, video_type, category, order_index) VALUES (?, ?, ?, ?, ?)");
+        foreach ($videoGallery as $vg) {
+            $stmtVGIns->execute([$vg[0], $vg[1], $vg[2], $vg[3], $vg[4]]);
+        }
+    }
 }
+
+function seedPackagesIfEmpty($pdo) {
+    try {
+        $check = $pdo->query("SELECT COUNT(*) as count FROM packages")->fetch();
+        if ($check && $check['count'] == 0) {
+            // Package 1: Réveillon 2026/2027
+            $stmt = $pdo->prepare("INSERT INTO packages (name, start_date, end_date, is_active, description) VALUES (?, ?, ?, 1, ?)");
+            $stmt->execute([
+                'Pacote Réveillon Pé na Areia 2026/2027',
+                '2026-12-28',
+                '2027-01-02',
+                'Ceia especial de Ano Novo, brinde com espumante pé na areia e café da manhã incluso.'
+            ]);
+            $revId = $pdo->lastInsertId();
+
+            // Package 2: Carnaval 2027
+            $stmt->execute([
+                'Pacote Carnaval no Paraíso 2027',
+                '2027-02-12',
+                '2027-02-17',
+                'Refúgio de tranquilidade entre o mar e a lagoa, longe da agitação e com o melhor pôr do sol.'
+            ]);
+            $carnId = $pdo->lastInsertId();
+
+            // Accommodations settings for Réveillon
+            $stmtPA = $pdo->prepare("INSERT INTO package_accommodations (package_id, accommodation_id, price_per_night, min_nights, is_active) VALUES (?, ?, ?, ?, 1)");
+            
+            // Suíte Master (id 1): R$ 850/noite, min 4 noites
+            $stmtPA->execute([$revId, 1, 850, 4]);
+            // Loft Massambaba (id 2): R$ 1100/noite, min 5 noites
+            $stmtPA->execute([$revId, 2, 1100, 5]);
+            // Suíte Jardim Tropical (id 3): R$ 680/noite, min 4 noites
+            $stmtPA->execute([$revId, 3, 680, 4]);
+            // Suíte Romântica Sunset (id 4): R$ 890/noite, min 4 noites
+            $stmtPA->execute([$revId, 4, 890, 4]);
+
+            // Accommodations settings for Carnaval
+            $stmtPA->execute([$carnId, 1, 750, 4]);
+            $stmtPA->execute([$carnId, 2, 980, 5]);
+            $stmtPA->execute([$carnId, 3, 590, 4]);
+            $stmtPA->execute([$carnId, 4, 780, 4]);
+        }
+    } catch (Exception $e) {}
+}
+
+function seedServicesIfEmpty($pdo) {
+    try {
+        $check = $pdo->query("SELECT COUNT(*) as count FROM services")->fetch();
+        if ($check && $check['count'] == 0) {
+            $stmt = $pdo->prepare("INSERT INTO services (
+                slug, category, name_pt, name_en, name_es,
+                tagline_pt, tagline_en, tagline_es,
+                description_pt, description_en, description_es,
+                duration_label, price_per_person, partner_name, partner_commission_pct, partner_cost,
+                min_participants, max_participants, included_items_json, requirements_json,
+                cover_photo, gallery_photos_json, youtube_video_url, is_featured, is_active, order_index
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+            // 1. Passeio Tradicional de Barco
+            $stmt->execute([
+                'passeio-barco-caribe-brasileiro',
+                'barco',
+                'Passeio de Barco no Caribe Brasileiro',
+                'Boat Tour in the Brazilian Caribbean',
+                'Paseo en Barco por el Caribe Brasileño',
+                'Roteiro completo: Ilha do Farol, Prainhas do Pontal, Praia do Forno e Gruta Azul',
+                'Complete tour: Lighthouse Island, Pontal Beaches, Forno Beach and Blue Grotto',
+                'Recorrido completo: Isla del Faro, Prainhas del Pontal, Playa del Forno y Gruta Azul',
+                'Navegue pelas águas cristalinas mais famosas do Brasil a bordo de uma embarcação confortável e segura. O roteiro inclui parada de desembarque na paradisíaca Ilha do Farol (reserva da Marinha), nas lendárias Prainhas do Pontal do Atalaia e parada para banho e snorkel na enseada da Praia do Forno. Durante a navegação panorâmica, contemplamos a Fenda de Nossa Senhora, a Pedra do Macaco e o visual místico da Gruta Azul e Impacto do Meteoro.',
+                'Sail through the world-famous crystal clear turquoise waters of Arraial do Cabo. The tour stops at the protected Lighthouse Island, Pontal do Atalaia beaches and Forno Beach for swimming and snorkeling. Also includes scenic navigation by the Blue Grotto and iconic sea cliffs.',
+                'Navega por las aguas turquesas más famosas de Brasil. El paseo incluye desembarque en la paradisíaca Isla del Faro, Prainhas del Pontal y Playa del Forno con parada para snorkel, además de vistas panorámicas a la Gruta Azul.',
+                '4 horas',
+                130.00,
+                'Escuna Arraial Tour & Navegações',
+                20.0,
+                104.00,
+                1,
+                40,
+                json_encode(['Passeio de escuna seguro com coletes', 'Parada na Ilha do Farol e Prainhas', 'Parada de banho na Praia do Forno', 'Som ambiente e água mineral a bordo', 'Marinheiro e guia credenciado']),
+                json_encode(['Chegar com 20 min de antecedência na Praia dos Anjos', 'Taxa da Marinha de R$ 10 paga no cais', 'Levar protetor solar e toalha', 'Crianças até 5 anos não pagam']),
+                'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
+                json_encode([
+                    'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
+                    'https://images.unsplash.com/photo-1510414842594-a61752d335c5?auto=format&fit=crop&w=1200&q=80',
+                    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80'
+                ]),
+                'https://www.youtube.com/watch?v=0kH8s4Ue7w8',
+                1,
+                1,
+                1
+            ]);
+
+            // 2. Mergulho de Batismo
+            $stmt->execute([
+                'mergulho-de-batismo-arraial-sub',
+                'mergulho',
+                'Mergulho de Batismo com Instrutor VIP',
+                'Scuba Diving Discovery with VIP Instructor',
+                'Bautismo de Buceo con Instructor VIP',
+                'Descubra a rica vida marinha da Capital Nacional do Mergulho com fotos subaquáticas',
+                'Explore the National Diving Capital with 1-on-1 certified instructor and underwater photos',
+                'Descubre la Capital Nacional del Buceo con instructor personalizado y fotos submarinas',
+                'Arraial do Cabo é consagrada como a Capital Nacional do Mergulho devido ao fenômeno da ressurgência, que traz águas ricas em nutrientes e uma visibilidade impressionante. No Batismo Subaquático, você não precisa saber nadar nem ter experiência prévia: um instrutor credenciado PADI exclusivo acompanha você durante toda a imersão subaquática a até 8 metros de profundidade. Encontro frequente com tartarugas marinhas, arraias, cavalos-marinhos e cardumes coloridos.',
+                'Arraial do Cabo is known as Brazil\'s capital of scuba diving. No prior swimming or diving experience required: an exclusive certified PADI divemaster stays with you at all times down to 8 meters depth. Includes complete professional gear and underwater photography.',
+                'Arraial del Cabo es la Capital Nacional del Buceo. No se requiere experiencia previa ni saber nadar: un instructor certificado te acompaña mano a mano hasta 8 metros de profundidad. Incluye equipo completo y fotos bajo el agua.',
+                '3 horas',
+                280.00,
+                'Centro de Mergulho Mar de Arraial',
+                20.0,
+                224.00,
+                1,
+                8,
+                json_encode(['Equipamento scuba completo (roupa de neoprene, cilindro, regulador)', 'Treinamento teórico prévio e adaptação', 'Instrutor individual exclusivo para cada mergulhador', 'Passeio de barco até o ponto de mergulho (Ilha dos Porcos)', 'Sessão de fotos subaquáticas em alta resolução']),
+                json_encode(['Idade mínima de 10 anos', 'Não realizar voo comercial nas 18 horas seguintes', 'Não recomendado para gestantes', 'Levar roupa de banho']),
+                'https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?auto=format&fit=crop&w=1200&q=80',
+                json_encode([
+                    'https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?auto=format&fit=crop&w=1200&q=80',
+                    'https://images.unsplash.com/photo-1682687220063-4742bd7fd538?auto=format&fit=crop&w=1200&q=80'
+                ]),
+                'https://www.youtube.com/watch?v=kY3P1x_wNq0',
+                1,
+                1,
+                2
+            ]);
+
+            // 3. Passeio de Buggy nas Dunas e Lagoa
+            $stmt->execute([
+                'tour-de-buggy-dunas-e-lagoa',
+                'buggy',
+                'Passeio de Buggy Costa do Sol & Dunas',
+                'Buggy Tour Coast & White Sand Dunes',
+                'Tour en Buggy Costa del Sol y Dunas',
+                'Aventura e emoção pelas dunas de areia branca, Praia Grande e pôr do sol na Lagoa',
+                'Adventure across white sand dunes, Praia Grande ocean beach and sunset at Lake Araruama',
+                'Aventura por las dunas de arena blanca, Praia Grande y puesta de sol en la laguna',
+                'Uma das experiências mais procuradas de Arraial do Cabo! O roteiro percorre as imponentes dunas de areia branca da Restinga da Massambaba (próximo à Pousada Monte Alto), a orla selvagem da Praia Grande e os mirantes da Lagoa de Araruama. Perfeito para casais, famílias e amigos que buscam adrenalina com total segurança e paradas panorâmicas para fotos inesquecíveis.',
+                'The most thrilling land tour in Arraial! Drive across the coastal desert dunes of Massambaba right by Monte Alto, open ocean beach spots and breathtaking lagoon lookout points.',
+                '¡Una aventura imperdible! Recorrido emocionante por las dunas de arena blanca de Massambaba junto a Monte Alto, miradores oceánicos y paradas fotográficas espectaculares.',
+                '2 horas e meia',
+                180.00,
+                'Buggy Aventura Cabo Frio & Arraial',
+                20.0,
+                144.00,
+                2,
+                4,
+                json_encode(['Buggy credenciado e revisado com motorista guia', 'Parada para fotos nas dunas de areia branca', 'Parada na Lagoa de Araruama', 'Parada nos mirantes da Praia Grande']),
+                json_encode(['Capacidade do buggy: até 4 passageiros', 'Levar óculos de sol, boné e protetor solar', 'Crianças menores de 5 anos devem ir com responsável']),
+                'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80',
+                json_encode([
+                    'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80',
+                    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80'
+                ]),
+                '',
+                1,
+                1,
+                3
+            ]);
+
+            // Sample service booking and sample transaction
+            $stmtBooking = $pdo->prepare("INSERT INTO service_bookings (
+                service_id, customer_name, customer_phone, customer_email,
+                service_date, service_time, participants_count, unit_price, total_price,
+                pousada_commission, partner_cost, status, payment_status, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', 'paid', ?)");
+
+            $stmtBooking->execute([
+                1,
+                'Mariana Silva & Família',
+                '+5521998877665',
+                'mariana.silva@gmail.com',
+                date('Y-m-d', strtotime('+3 days')),
+                '09:30',
+                2,
+                130.00,
+                260.00,
+                52.00,
+                208.00,
+                'Hóspedes da Suíte Master - solicitou saída pela manhã'
+            ]);
+            $sampleBookingId = $pdo->lastInsertId();
+
+            $stmtTx = $pdo->prepare("INSERT INTO service_financial_transactions (
+                service_booking_id, service_id, type, category, amount, payment_method,
+                transaction_date, description, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed')");
+
+            // Income: Total booking
+            $stmtTx->execute([
+                $sampleBookingId,
+                1,
+                'income',
+                'reserva_servico',
+                260.00,
+                'pix',
+                date('Y-m-d'),
+                'Reserva de Passeio #1 - Mariana Silva (2 pessoas - Passeio de Barco)'
+            ]);
+
+            // Expense: Partner payout
+            $stmtTx->execute([
+                $sampleBookingId,
+                1,
+                'expense',
+                'repasse_parceiro',
+                208.00,
+                'pix',
+                date('Y-m-d'),
+                'Repasse Parceiro Escuna Arraial - Reserva #1 (Mariana Silva)'
+            ]);
+        }
+    } catch (Exception $e) {}
+}
+

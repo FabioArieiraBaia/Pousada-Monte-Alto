@@ -32,6 +32,7 @@ export default function RoomDetailPage() {
   const [checkIn, setCheckIn] = useState(tomorrow.toISOString().split('T')[0]);
   const [checkOut, setCheckOut] = useState(checkoutDefault.toISOString().split('T')[0]);
   const [isAvailable, setIsAvailable] = useState(true);
+  const [stayRule, setStayRule] = useState(null);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [suggestedAlternatives, setSuggestedAlternatives] = useState([]);
 
@@ -57,11 +58,13 @@ export default function RoomDetailPage() {
     api.checkAvailability(checkIn, checkOut, 1, false, room.id)
       .then(res => {
         setIsAvailable(res.available !== false);
+        setStayRule(res.stay_rule || null);
         setSuggestedAlternatives(res.suggested_alternatives || []);
       })
       .catch(err => {
         console.warn('Erro ao verificar disponibilidade:', err);
         setIsAvailable(true);
+        setStayRule(null);
       })
       .finally(() => setCheckingAvailability(false));
   }, [room?.id, checkIn, checkOut]);
@@ -133,7 +136,11 @@ export default function RoomDetailPage() {
 
   const amenitiesList = Array.isArray(room.amenities) ? room.amenities : [];
   const pousadaWhatsApp = '5521969493569';
-  const waMsg = `Olá! Gostaria de consultar os valores promocionais e disponibilidade para a *${name}* de *${checkIn}* a *${checkOut}* (${nights} diárias) na Pousada Monte Alto.`;
+  const isPackage = stayRule?.is_package;
+  const packageName = stayRule?.package?.name;
+  const waMsg = isPackage
+    ? `Olá! Gostaria de consultar o *${packageName}* para a *${name}* de *${checkIn}* a *${checkOut}* (${nights} diárias) na Pousada Monte Alto.`
+    : `Olá! Gostaria de consultar os valores promocionais e disponibilidade para a *${name}* de *${checkIn}* a *${checkOut}* (${nights} diárias) na Pousada Monte Alto.`;
   const directWhatsAppUrl = `https://wa.me/${pousadaWhatsApp}?text=${encodeURIComponent(waMsg)}`;
 
   return (
@@ -433,7 +440,27 @@ export default function RoomDetailPage() {
             {checkingAvailability ? (
               <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 text-xs text-stone-500 flex items-center gap-2">
                 <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                <span>Verificando disponibilidade do período...</span>
+                <span>Verificando disponibilidade e regras do período...</span>
+              </div>
+            ) : (stayRule && !stayRule.valid) ? (
+              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-300 space-y-2.5">
+                <div className="flex items-start gap-2 text-amber-950">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="text-xs font-bold block text-amber-900">
+                      Mínimo de Diárias Não Atingido ({stayRule.nights} de {stayRule.min_nights} diárias)
+                    </span>
+                    <span className="text-[11px] text-amber-800 leading-relaxed block mt-1">
+                      {stayRule.reason}
+                    </span>
+                  </div>
+                </div>
+                {stayRule.is_package && (
+                  <div className="bg-white/80 p-2 rounded-xl border border-amber-200 text-[11px] text-amber-900 font-semibold flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Período do {stayRule.package?.name}</span>
+                  </div>
+                )}
               </div>
             ) : !isAvailable ? (
               <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 space-y-3">
@@ -486,6 +513,16 @@ export default function RoomDetailPage() {
                   </div>
                 )}
               </div>
+            ) : stayRule && stayRule.is_package ? (
+              <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-300 text-xs text-amber-950 space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>{stayRule.package?.name}</span>
+                </div>
+                <p className="text-[11px] text-amber-800">
+                  Tarifa especial do pacote aplicada: <strong>{formatCurrency(stayRule.package?.price_per_night)}/noite</strong> (Mínimo de {stayRule.min_nights} diárias atendido).
+                </p>
+              </div>
             ) : (
               <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2 font-semibold">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
@@ -505,7 +542,7 @@ export default function RoomDetailPage() {
               </div>
               <div className="pt-2 border-t border-amber-200 flex justify-between font-bold text-sm text-stone-900">
                 <span>Condição:</span>
-                <span className="text-amber-700 font-serif">Desconto Exclusivo</span>
+                <span className="text-amber-700 font-serif">{stayRule?.is_package ? stayRule.package?.name : 'Desconto Exclusivo'}</span>
               </div>
             </div>
 
@@ -521,7 +558,15 @@ export default function RoomDetailPage() {
                 }`}
               >
                 <FileText className="w-4 h-4" />
-                <span>{isAvailable ? 'Consultar / Reservar via Formulário' : 'Indisponível nestas Datas'}</span>
+                <span>
+                  {stayRule && !stayRule.valid
+                    ? `Mínimo de ${stayRule.min_nights} diárias exigido`
+                    : !isAvailable
+                    ? 'Indisponível nestas Datas'
+                    : stayRule?.is_package
+                    ? 'Reservar Pacote Especial'
+                    : 'Consultar / Reservar via Formulário'}
+                </span>
               </button>
 
               <a

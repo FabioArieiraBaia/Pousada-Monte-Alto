@@ -1,13 +1,14 @@
 {
   "nav": {
     "home": "Inicio",
-    "accommodations": "Suites y Loft",
-    "about": "Quiénes Somos y Ubicación",
-    "blog": "Consejos y Blog",
+    "accommodations": "Alojamiento",
+    "services": "Paseos",
+    "about": "Sobre",
+    "gallery": "Galería",
+    "blog": "Blog",
     "contact": "Contacto",
     "bookNow": "Reservar Ahora",
-    "admin": "Panel Admin",
-    "gallery": "Galería"
+    "admin": "Panel Admin"
   },
   "hero": {
     "badge": "Frente al mar en Monte Alto • Arraial do Cabo",
@@ -19,6 +20,13 @@
     "searchPets": "Viajando con Mascota 🐾",
     "searchButton": "Consultar Disponibilidad",
     "allAccommodations": "Ver Todos los Alojamientos"
+  },
+  "search": {
+    "checkin": "Check-in",
+    "checkout": "Check-out",
+    "guests": "Huéspedes",
+    "pets": "Viajando con Mascota 🐾",
+    "submit": "Consultar Disponibilidad"
   },
   "home": {
     "featuredRooms": "Nuestros Alojamientos",
@@ -44,6 +52,7 @@
     "talkOnWhatsApp": "Hablar por WhatsApp"
   },
   "room": {
+    "bookNow": "Reservar Ahora",
     "perNight": "por noche",
     "maxGuests": "Hasta {{count}} huéspedes",
     "petsAllowed": "Pet Friendly 🐾",
@@ -74,6 +83,29 @@
     "checkinInfo": "Check-in a partir de las 14:00 | Check-out hasta las 12:00",
     "instantBooking": "Solicitar Reserva",
     "bookViaWhatsApp": "Reservar Directo por WhatsApp"
+  },
+  "amenities": {
+    "wifi": "Wi-Fi Fibra Óptica",
+    "ar_condicionado": "Aire Acondicionado Split",
+    "hidromassagem": "Hidromasaje",
+    "cama_king": "Cama King Size",
+    "cama_queen": "Cama Queen Size",
+    "sofa_cama": "Sofá Cama Cómodo",
+    "frigobar": "Minibar",
+    "smart_tv": "Smart TV",
+    "vista_mar": "Vista al Mar",
+    "vista_lagoa": "Vista al Atardecer de la Laguna",
+    "cafe_da_manha": "Desayuno Incluido",
+    "cafe_manha": "Desayuno Opcional",
+    "estacionamento": "Estacionamiento Gratis",
+    "pet_friendly": "Acepta Mascotas",
+    "varanda_com_rede": "Balcón con Hamaca",
+    "varanda_rede": "Balcón con Hamaca",
+    "cozinha_completa": "Cocina Completa",
+    "churrasqueira": "Parrilla Privada",
+    "jardim_privativo": "Jardín Privado",
+    "banheira": "Bañera de Inmersión",
+    "varanda_sunset": "Balcón Sunset Privado"
   },
   "booking": {
     "title": "Solicitar Reserva",
@@ -126,6 +158,7 @@
     "backToBeaches": "Volver a la Guía de Playas"
   },
   "blog": {
+    "badge": "Consejos y Noticias",
     "title": "Blog de la Posada",
     "subtitle": "Guías de viaje, playas, gastronomía y secretos de Arraial do Cabo",
     "readMore": "Leer Artículo Completo",
@@ -147,9 +180,18 @@
     "addressTitle": "Nuestra Dirección",
     "addressText": "Travessa Américo Reis, Distrito de Monte Alto, Arraial do Cabo - RJ, Brasil, CP 28930-000",
     "phoneTitle": "Teléfonos y WhatsApp",
+    "whatsappTitle": "WhatsApp y Atención",
     "emailTitle": "Correo de Atención",
     "hoursTitle": "Horario de Atención",
     "hoursText": "Todos los días de 08:00 a 22:00",
+    "formTitle": "Envíenos un Mensaje",
+    "name": "Nombre Completo",
+    "phone": "Teléfono / WhatsApp",
+    "email": "Correo Electrónico",
+    "message": "Mensaje",
+    "send": "Enviar Mensaje",
+    "sentSuccess": "¡Mensaje enviado con éxito!",
+    "sentDesc": "Nuestro equipo se comunicará con usted a la brevedad.",
     "sendMessage": "Envíenos un Mensaje",
     "sendButton": "Enviar Mensaje"
   },

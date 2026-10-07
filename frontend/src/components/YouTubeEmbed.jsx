@@ -2,11 +2,12 @@ import React from 'react';
 import { Play, Sparkles } from 'lucide-react';
 
 export default function YouTubeEmbed({ url, title = "Tour Virtual em Vídeo" }) {
-  if (!url) return null;
+  const cleanUrl = (url || '').trim();
+  if (!cleanUrl) return null;
 
-  // Extract YouTube ID from various formats including Shorts (youtube.com/shorts/...), youtu.be, embed and standard watch
+  // Extract YouTube ID from various formats including Shorts (youtube.com/shorts/...), youtu.be, embed, live, and standard watch
   let videoId = '';
-  const match = url.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/i);
+  const match = cleanUrl.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([a-zA-Z0-9_-]{11})/i);
   if (match && match[1]) {
     videoId = match[1];
   }
@@ -15,7 +16,7 @@ export default function YouTubeEmbed({ url, title = "Tour Virtual em Vídeo" }) 
     return null;
   }
 
-  const isShort = url.toLowerCase().includes('/shorts/');
+  const isShort = cleanUrl.toLowerCase().includes('/shorts/');
 
   return (
     <div className={`w-full bg-stone-900 rounded-2xl overflow-hidden shadow-xl border border-stone-800 ${isShort ? 'max-w-sm mx-auto' : ''}`}>
