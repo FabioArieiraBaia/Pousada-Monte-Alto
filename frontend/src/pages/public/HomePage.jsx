@@ -42,21 +42,27 @@ export default function HomePage() {
       title: 'Tour Virtual Completo pela Pousada',
       video_url: 'https://www.youtube.com/watch?v=0kH8s4Ue7w8',
       video_type: 'youtube',
-      category: 'pousada'
+      category: 'pousada',
+      description: 'Conheça em detalhes nossas acomodações acolhedoras, áreas de convivência e a atmosfera pé na areia.',
+      tags: 'Pousada Monte Alto, Tour Virtual, Suítes, Arraial do Cabo'
     },
     {
       id: 2,
       title: 'Pôr do Sol Dourado na Lagoa de Araruama',
       video_url: 'https://www.youtube.com/shorts/3X9vV3sK4pE',
       video_type: 'shorts',
-      category: 'lagoa'
+      category: 'lagoa',
+      description: 'O espetáculo do pôr do sol a apenas 3 minutos a pé da pousada, com águas calmas e tons dourados.',
+      tags: 'Pôr do Sol, Lagoa de Araruama, Sunset, Relax'
     },
     {
       id: 3,
       title: 'Praia de Monte Alto - Pé na Areia & Drone',
       video_url: 'https://www.instagram.com/reel/C8qL0PkuXYZ/',
       video_type: 'reels',
-      category: 'praia'
+      category: 'praia',
+      description: 'Voo panorâmico mostrando a beleza preservada da orla de Monte Alto e a restinga de Massambaba.',
+      tags: 'Praia de Monte Alto, Pé na Areia, Drone, Natureza'
     }
   ];
 
@@ -656,28 +662,46 @@ export default function HomePage() {
                 </div>
 
                 {/* Video Info Footer */}
-                <div className="p-5 flex items-center justify-between gap-3 border-t border-white/10 bg-stone-900/80">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block mb-0.5">
-                      {video.category === 'pousada' ? 'A Pousada' : video.category === 'praia' ? 'Praia' : video.category === 'lagoa' ? 'Pôr do Sol' : video.category === 'experiencias' ? 'Experiência' : 'Destaque'}
-                    </span>
-                    <h3 className="font-serif font-bold text-sm sm:text-base text-white truncate">
-                      {video.title}
-                    </h3>
+                <div className="p-5 border-t border-white/10 bg-stone-900/80 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block mb-0.5">
+                        {video.category === 'pousada' ? 'A Pousada' : video.category === 'praia' ? 'Praia' : video.category === 'lagoa' ? 'Pôr do Sol' : video.category === 'experiencias' ? 'Experiência' : 'Destaque'}
+                      </span>
+                      <h3 className="font-serif font-bold text-sm sm:text-base text-white line-clamp-2">
+                        {video.title}
+                      </h3>
+                    </div>
+
+                    {isIg ? (
+                      <span className="shrink-0 text-[10px] font-bold text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <InstagramIcon className="w-3 h-3" /> Reel
+                      </span>
+                    ) : isShort ? (
+                      <span className="shrink-0 text-[10px] font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Shorts
+                      </span>
+                    ) : (
+                      <span className="shrink-0 text-[10px] font-bold text-red-400 bg-red-500/15 border border-red-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <Play className="w-3 h-3 fill-red-400" /> Vídeo
+                      </span>
+                    )}
                   </div>
 
-                  {isIg ? (
-                    <span className="shrink-0 text-[10px] font-bold text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <InstagramIcon className="w-3 h-3" /> Reel
-                    </span>
-                  ) : isShort ? (
-                    <span className="shrink-0 text-[10px] font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> Shorts
-                    </span>
-                  ) : (
-                    <span className="shrink-0 text-[10px] font-bold text-red-400 bg-red-500/15 border border-red-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <Play className="w-3 h-3 fill-red-400" /> Vídeo
-                    </span>
+                  {video.description && (
+                    <p className="text-xs text-stone-300 font-light leading-relaxed line-clamp-2">
+                      {video.description}
+                    </p>
+                  )}
+
+                  {video.tags && (
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {video.tags.split(',').map(tag => tag.trim()).filter(Boolean).map((tag, i) => (
+                        <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-stone-300 font-medium border border-white/5">
+                          #{tag.replace(/^#/, '')}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>

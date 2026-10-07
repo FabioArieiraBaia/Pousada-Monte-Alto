@@ -207,10 +207,24 @@ function initDatabase($pdo) {
         video_url TEXT NOT NULL,
         video_type TEXT DEFAULT 'youtube',
         category TEXT DEFAULT 'geral',
+        description TEXT DEFAULT '',
+        tags TEXT DEFAULT '',
         cover_url TEXT DEFAULT '',
         order_index INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
+
+    // Garantir que as colunas description e tags existam se a tabela já foi criada anteriormente
+    try {
+        $vgCols = $pdo->query("PRAGMA table_info(video_gallery_items)")->fetchAll();
+        $vgColNames = array_column($vgCols, 'name');
+        if (!in_array('description', $vgColNames)) {
+            $pdo->exec("ALTER TABLE video_gallery_items ADD COLUMN description TEXT DEFAULT ''");
+        }
+        if (!in_array('tags', $vgColNames)) {
+            $pdo->exec("ALTER TABLE video_gallery_items ADD COLUMN tags TEXT DEFAULT ''");
+        }
+    } catch (Exception $e) {}
 
     // 10. Tourist Attractions / Beaches Guide
     $pdo->exec("CREATE TABLE IF NOT EXISTS tourist_attractions (

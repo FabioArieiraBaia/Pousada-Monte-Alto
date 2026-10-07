@@ -16,6 +16,8 @@ class VideoGalleryController {
         $title = trim($data['title'] ?? '');
         $videoUrl = trim($data['video_url'] ?? '');
         $category = trim($data['category'] ?? 'geral');
+        $description = trim($data['description'] ?? '');
+        $tags = trim($data['tags'] ?? '');
         $coverUrl = trim($data['cover_url'] ?? '');
         $orderIndex = intval($data['order_index'] ?? 0);
 
@@ -41,8 +43,8 @@ class VideoGalleryController {
             }
         }
 
-        $stmt = $pdo->prepare("INSERT INTO video_gallery_items (title, video_url, video_type, category, cover_url, order_index) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$title, $videoUrl, $videoType, $category, $coverUrl, $orderIndex]);
+        $stmt = $pdo->prepare("INSERT INTO video_gallery_items (title, video_url, video_type, category, description, tags, cover_url, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$title, $videoUrl, $videoType, $category, $description, $tags, $coverUrl, $orderIndex]);
 
         echo json_encode([
             'success' => true,
@@ -58,6 +60,8 @@ class VideoGalleryController {
         $title = trim($data['title'] ?? '');
         $videoUrl = trim($data['video_url'] ?? '');
         $category = trim($data['category'] ?? 'geral');
+        $description = trim($data['description'] ?? '');
+        $tags = trim($data['tags'] ?? '');
         $coverUrl = trim($data['cover_url'] ?? '');
         $orderIndex = intval($data['order_index'] ?? 0);
 
@@ -82,8 +86,8 @@ class VideoGalleryController {
             }
         }
 
-        $stmt = $pdo->prepare("UPDATE video_gallery_items SET title = ?, video_url = ?, video_type = ?, category = ?, cover_url = ?, order_index = ? WHERE id = ?");
-        $stmt->execute([$title, $videoUrl, $videoType, $category, $coverUrl, $orderIndex, $id]);
+        $stmt = $pdo->prepare("UPDATE video_gallery_items SET title = ?, video_url = ?, video_type = ?, category = ?, description = ?, tags = ?, cover_url = ?, order_index = ? WHERE id = ?");
+        $stmt->execute([$title, $videoUrl, $videoType, $category, $description, $tags, $coverUrl, $orderIndex, $id]);
 
         echo json_encode(['success' => true, 'message' => 'Vídeo atualizado com sucesso']);
     }

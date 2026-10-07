@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Trash2, Edit, Video, 
-  Check, X, Sparkles, Play, Globe, ExternalLink, HelpCircle
+  Check, X, Sparkles, Play, Globe, ExternalLink, HelpCircle, Tag
 } from 'lucide-react';
 import { api } from '../../services/api';
 import SocialVideoEmbed from '../../components/SocialVideoEmbed';
@@ -19,6 +19,8 @@ export default function AdminVideoGalleryPage() {
     video_url: '',
     video_type: 'youtube',
     category: 'pousada',
+    description: '',
+    tags: '',
     order_index: 0
   });
 
@@ -96,6 +98,8 @@ export default function AdminVideoGalleryPage() {
         video_url: item.video_url,
         video_type: item.video_type || detectVideoType(item.video_url),
         category: item.category || 'pousada',
+        description: item.description || '',
+        tags: item.tags || '',
         order_index: item.order_index || 0
       });
     } else {
@@ -105,6 +109,8 @@ export default function AdminVideoGalleryPage() {
         video_url: '',
         video_type: 'youtube',
         category: 'pousada',
+        description: '',
+        tags: '',
         order_index: items.length + 1
       });
     }
@@ -245,6 +251,22 @@ export default function AdminVideoGalleryPage() {
                       {item.title}
                     </h4>
 
+                    {item.description && (
+                      <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">
+                        {item.description}
+                      </p>
+                    )}
+
+                    {item.tags && (
+                      <div className="flex flex-wrap gap-1 pt-0.5">
+                        {item.tags.split(',').map(t => t.trim()).filter(Boolean).map((t, idx) => (
+                          <span key={idx} className="text-[10px] px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 font-medium">
+                            #{t.replace(/^#/, '')}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
                     <span className="text-[11px] text-stone-400 block truncate font-mono">
                       {item.video_url}
                     </span>
@@ -384,6 +406,42 @@ export default function AdminVideoGalleryPage() {
                     className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white font-bold"
                   />
                 </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1">
+                  Descrição / Legenda Explicativa
+                </label>
+                <textarea
+                  rows={3}
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="Descreva o que o visitante verá neste vídeo (ex: Vista espetacular do pôr do sol na lagoa a poucos minutos da pousada)..."
+                  className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none leading-relaxed"
+                />
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1">
+                  Tags / Palavras-chave (separadas por vírgula)
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={form.tags}
+                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                    placeholder="Ex: Praia de Monte Alto, Pôr do Sol, Pet Friendly, Passeio de Barco"
+                    className="w-full text-xs p-3 pl-9 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  <div className="absolute left-3 top-3 text-stone-400">
+                    <Tag className="w-3.5 h-3.5 text-amber-500" />
+                  </div>
+                </div>
+                <span className="text-[10px] text-stone-400 mt-1 block">
+                  As tags aparecerão em formato de chips no card do vídeo na página inicial.
+                </span>
               </div>
 
               {/* Live Preview */}
