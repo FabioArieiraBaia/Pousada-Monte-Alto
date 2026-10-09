@@ -238,16 +238,12 @@ class AccommodationsController {
         $stmtAll = $pdo->query("SELECT * FROM accommodations WHERE is_active = 1 ORDER BY id ASC");
         $allRooms = $stmtAll->fetchAll();
 
-        // 2. Fetch all conflicting reservations in this date range
+        // 2. Fetch all conflicting reservations in this date range (Hóspede saindo às 12h permite novo check-in às 14h)
         $sqlConf = "SELECT accommodation_id, check_in, check_out, status FROM reservations 
                     WHERE status IN ('confirmed', 'checked_in')
-                    AND (
-                        (check_in < ? AND check_out > ?) OR
-                        (check_in >= ? AND check_in < ?) OR
-                        (check_out > ? AND check_out <= ?)
-                    )";
+                    AND check_in < ? AND check_out > ?";
         $stmtConf = $pdo->prepare($sqlConf);
-        $stmtConf->execute([$checkOut, $checkIn, $checkIn, $checkOut, $checkIn, $checkOut]);
+        $stmtConf->execute([$checkOut, $checkIn]);
         $conflicts = $stmtConf->fetchAll();
 
         $occupiedMap = [];

@@ -97,6 +97,7 @@ function initDatabase($pdo) {
         children_count INTEGER DEFAULT 0,
         has_pets INTEGER DEFAULT 0,
         total_price REAL NOT NULL,
+        paid_amount REAL DEFAULT 0,
         status TEXT DEFAULT 'pending',
         payment_status TEXT DEFAULT 'unpaid',
         notes TEXT,
@@ -139,18 +140,21 @@ function initDatabase($pdo) {
             }
         }
 
-        // Auto-migration for reservations refund columns
+        // Auto-migration for reservations columns (refund & partial payments)
         $resCols = $pdo->query("PRAGMA table_info(reservations)")->fetchAll(PDO::FETCH_COLUMN, 1);
         $resFields = [
             'refund_amount' => 'REAL DEFAULT 0',
             'refund_reason' => 'TEXT NULL',
-            'refund_date' => 'DATE NULL'
+            'refund_date' => 'DATE NULL',
+            'paid_amount' => 'REAL DEFAULT 0'
         ];
         foreach ($resFields as $field => $type) {
             if (!in_array($field, $resCols)) {
                 $pdo->exec("ALTER TABLE reservations ADD COLUMN $field $type");
             }
         }
+        // Sincronizar reservas já pagas para que paid_amount reflita total_price
+        $pdo->exec("UPDATE reservations SET paid_amount = total_price WHERE payment_status = 'paid' AND (paid_amount IS NULL OR paid_amount = 0)");
     } catch (Exception $e) {}
 
     // 7. Blog Posts

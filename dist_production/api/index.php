@@ -308,6 +308,14 @@ try {
         ReservationsController::updateStatus($pdo, $m[1]);
         exit();
     }
+    if (preg_match('#^/reservations/(\d+)/extend$#', $path, $m) && $method === 'POST') {
+        ReservationsController::extendStay($pdo, $m[1]);
+        exit();
+    }
+    if (preg_match('#^/reservations/(\d+)$#', $path, $m) && $method === 'PUT') {
+        ReservationsController::updateAdmin($pdo, $m[1]);
+        exit();
+    }
     if (preg_match('#^/reservations/(\d+)/cancel$#', $path, $m) && $method === 'POST') {
         ReservationsController::cancelWithRefund($pdo, $m[1]);
         exit();

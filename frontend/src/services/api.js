@@ -135,9 +135,17 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
-  updateReservationStatus: (id, status, payment_status, notes) => request(`/reservations/${id}/status`, {
+  updateReservation: (id, data) => request(`/reservations/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ status, payment_status, notes })
+    body: JSON.stringify(data)
+  }),
+  extendReservationStay: (id, data) => request(`/reservations/${id}/extend`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateReservationStatus: (id, status, payment_status, notes, extra = {}) => request(`/reservations/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status, payment_status, notes, ...extra })
   }),
   cancelReservation: (id, data) => request(`/reservations/${id}/cancel`, {
     method: 'POST',

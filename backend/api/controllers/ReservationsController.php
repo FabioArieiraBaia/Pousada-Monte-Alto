@@ -8,7 +8,9 @@ class ReservationsController {
     public static function getAll($pdo) {
         requireAuth($pdo);
         
-        $sql = "SELECT r.*, a.name_pt as accommodation_name, a.type as accommodation_type, a.slug as accommodation_slug,
+        $sql = "SELECT r.*, 
+                ROUND(r.total_price - COALESCE(r.paid_amount, 0), 2) as remaining_balance,
+                a.name_pt as accommodation_name, a.type as accommodation_type, a.slug as accommodation_slug,
                 (SELECT COUNT(*) FROM financial_transactions WHERE reservation_id = r.id AND status = 'completed') as is_in_finance
                 FROM reservations r
                 LEFT JOIN accommodations a ON r.accommodation_id = a.id
@@ -27,7 +29,9 @@ class ReservationsController {
         $startDate = $month . '-01';
         $endDate = date('Y-m-t', strtotime($startDate));
         
-        $sql = "SELECT r.*, a.name_pt as accommodation_name, a.type as accommodation_type
+        $sql = "SELECT r.*, 
+                ROUND(r.total_price - COALESCE(r.paid_amount, 0), 2) as remaining_balance,
+                a.name_pt as accommodation_name, a.type as accommodation_type
                 FROM reservations r
                 LEFT JOIN accommodations a ON r.accommodation_id = a.id
                 WHERE (r.check_in <= ? AND r.check_out >= ?)
@@ -148,9 +152,26 @@ class ReservationsController {
         requireAuth($pdo);
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         
+        $totalPrice = floatval($data['total_price'] ?? 0);
+        $paidAmount = isset($data['paid_amount']) ? floatval($data['paid_amount']) : 0;
+        $paymentStatus = $data['payment_status'] ?? null;
+        
+        if (!$paymentStatus) {
+            if ($paidAmount >= $totalPrice && $totalPrice > 0) {
+                $paymentStatus = 'paid';
+            } else if ($paidAmount > 0) {
+                $paymentStatus = 'partial';
+            } else {
+                $paymentStatus = 'unpaid';
+            }
+        }
+        if ($paymentStatus === 'paid' && $paidAmount == 0 && $totalPrice > 0) {
+            $paidAmount = $totalPrice;
+        }
+
         $stmt = $pdo->prepare("INSERT INTO reservations 
-            (accommodation_id, guest_name, guest_email, guest_phone, check_in, check_out, adults_count, children_count, has_pets, total_price, status, payment_status, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            (accommodation_id, guest_name, guest_email, guest_phone, check_in, check_out, adults_count, children_count, has_pets, total_price, paid_amount, status, payment_status, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
         $stmt->execute([
             intval($data['accommodation_id']),
@@ -162,21 +183,27 @@ class ReservationsController {
             intval($data['adults_count'] ?? 1),
             intval($data['children_count'] ?? 0),
             !empty($data['has_pets']) ? 1 : 0,
-            floatval($data['total_price']),
+            $totalPrice,
+            $paidAmount,
             $data['status'] ?? 'confirmed',
-            $data['payment_status'] ?? 'paid',
+            $paymentStatus,
             $data['notes'] ?? ''
         ]);
         
         $resId = $pdo->lastInsertId();
         
-        // Auto-create financial income if paid or confirmed
-        if (($data['payment_status'] ?? '') === 'paid' || in_array(($data['status'] ?? ''), ['confirmed', 'checked_in'])) {
+        // Auto-create financial income if paid/partial or confirmed
+        if ($paidAmount > 0 || in_array(($data['status'] ?? ''), ['confirmed', 'checked_in'])) {
             $nights = max(1, round((strtotime($data['check_out']) - strtotime($data['check_in'])) / 86400));
             $accId = intval($data['accommodation_id']);
             $stmtAcc = $pdo->prepare("SELECT name_pt FROM accommodations WHERE id = ?");
             $stmtAcc->execute([$accId]);
             $accName = $stmtAcc->fetchColumn() ?: 'Acomodação';
+            
+            $finAmount = $paidAmount > 0 ? $paidAmount : $totalPrice;
+            $descSuffix = $paymentStatus === 'partial' 
+                ? " (Sinal / Entrada - Resta: R$ " . number_format($totalPrice - $paidAmount, 2, ',', '.') . ")"
+                : " (Quitação Integral)";
 
             $stmtFin = $pdo->prepare("INSERT INTO financial_transactions 
                 (reservation_id, accommodation_id, checkin_date, checkout_date, nights, type, category, amount, payment_method, transaction_date, description, status)
@@ -187,14 +214,209 @@ class ReservationsController {
                 $data['check_in'],
                 $data['check_out'],
                 $nights,
-                floatval($data['total_price']),
+                $finAmount,
                 $data['payment_method'] ?? 'pix',
                 date('Y-m-d'),
-                "Reserva #{$resId} - {$data['guest_name']} ({$accName} • {$nights} diárias)"
+                "Reserva #{$resId} - {$data['guest_name']} ({$accName} • {$nights} diárias){$descSuffix}"
             ]);
         }
         
-        echo json_encode(['success' => true, 'id' => $resId, 'message' => 'Reserva criada com sucesso']);
+        echo json_encode([
+            'success' => true, 
+            'id' => $resId, 
+            'message' => 'Reserva criada com sucesso',
+            'remaining_balance' => max(0, $totalPrice - $paidAmount)
+        ]);
+    }
+
+    public static function updateAdmin($pdo, $id) {
+        requireAuth($pdo);
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        
+        $stmtRes = $pdo->prepare("SELECT * FROM reservations WHERE id = ?");
+        $stmtRes->execute([$id]);
+        $current = $stmtRes->fetch();
+        if (!$current) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Reserva não encontrada']);
+            return;
+        }
+
+        $accId = intval($data['accommodation_id'] ?? $current['accommodation_id']);
+        $guestName = trim($data['guest_name'] ?? $current['guest_name']);
+        $guestEmail = trim($data['guest_email'] ?? $current['guest_email']);
+        $guestPhone = trim($data['guest_phone'] ?? $current['guest_phone']);
+        $checkIn = $data['check_in'] ?? $current['check_in'];
+        $checkOut = $data['check_out'] ?? $current['check_out'];
+        $adultsCount = intval($data['adults_count'] ?? $current['adults_count']);
+        $childrenCount = intval($data['children_count'] ?? $current['children_count']);
+        $hasPets = isset($data['has_pets']) ? (!empty($data['has_pets']) ? 1 : 0) : $current['has_pets'];
+        $totalPrice = floatval($data['total_price'] ?? $current['total_price']);
+        $paidAmount = isset($data['paid_amount']) ? floatval($data['paid_amount']) : floatval($current['paid_amount']);
+        $status = $data['status'] ?? $current['status'];
+        $notes = $data['notes'] ?? $current['notes'];
+        
+        // Auto-detect or respect payment_status
+        $paymentStatus = $data['payment_status'] ?? null;
+        if (!empty($data['quick_pay'])) {
+            $paidAmount = $totalPrice;
+            $paymentStatus = 'paid';
+        } else if (!$paymentStatus) {
+            if ($paidAmount >= $totalPrice && $totalPrice > 0) {
+                $paymentStatus = 'paid';
+            } else if ($paidAmount > 0) {
+                $paymentStatus = 'partial';
+            } else {
+                $paymentStatus = 'unpaid';
+            }
+        } else if ($paymentStatus === 'paid' && $paidAmount == 0 && $totalPrice > 0) {
+            $paidAmount = $totalPrice;
+        }
+
+        $stmtUpdate = $pdo->prepare("UPDATE reservations SET 
+            accommodation_id = ?, guest_name = ?, guest_email = ?, guest_phone = ?,
+            check_in = ?, check_out = ?, adults_count = ?, children_count = ?, has_pets = ?,
+            total_price = ?, paid_amount = ?, status = ?, payment_status = ?, notes = ?
+            WHERE id = ?");
+            
+        $stmtUpdate->execute([
+            $accId, $guestName, $guestEmail, $guestPhone,
+            $checkIn, $checkOut, $adultsCount, $childrenCount, $hasPets,
+            $totalPrice, $paidAmount, $status, $paymentStatus, $notes,
+            $id
+        ]);
+
+        // Sincronização com o financeiro
+        if ($paidAmount > 0) {
+            $stmtFinCheck = $pdo->prepare("SELECT id, status FROM financial_transactions WHERE reservation_id = ? AND type = 'income'");
+            $stmtFinCheck->execute([$id]);
+            $existingFin = $stmtFinCheck->fetch();
+
+            $nights = max(1, round((strtotime($checkOut) - strtotime($checkIn)) / 86400));
+            $stmtAcc = $pdo->prepare("SELECT name_pt FROM accommodations WHERE id = ?");
+            $stmtAcc->execute([$accId]);
+            $accName = $stmtAcc->fetchColumn() ?: 'Acomodação';
+
+            $descSuffix = $paymentStatus === 'partial' 
+                ? " (Sinal / Entrada - Resta: R$ " . number_format($totalPrice - $paidAmount, 2, ',', '.') . ")"
+                : " (Quitação Integral)";
+
+            if ($existingFin) {
+                $stmtFinUp = $pdo->prepare("UPDATE financial_transactions SET 
+                    amount = ?, checkin_date = ?, checkout_date = ?, nights = ?, accommodation_id = ?,
+                    description = ?, status = 'completed'
+                    WHERE id = ?");
+                $stmtFinUp->execute([
+                    $paidAmount, $checkIn, $checkOut, $nights, $accId,
+                    "Reserva #{$id} - {$guestName} ({$accName} • {$nights} diárias){$descSuffix}",
+                    $existingFin['id']
+                ]);
+            } else {
+                $stmtFinIns = $pdo->prepare("INSERT INTO financial_transactions 
+                    (reservation_id, accommodation_id, checkin_date, checkout_date, nights, type, category, amount, payment_method, transaction_date, description, status)
+                    VALUES (?, ?, ?, ?, ?, 'income', 'diaria', ?, ?, ?, ?, 'completed')");
+                $stmtFinIns->execute([
+                    $id, $accId, $checkIn, $checkOut, $nights, $paidAmount,
+                    $data['payment_method'] ?? 'pix', date('Y-m-d'),
+                    "Reserva #{$id} - {$guestName} ({$accName} • {$nights} diárias){$descSuffix}"
+                ]);
+            }
+        }
+
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Reserva atualizada com sucesso',
+            'remaining_balance' => max(0, $totalPrice - $paidAmount)
+        ]);
+    }
+
+    public static function extendStay($pdo, $id) {
+        requireAuth($pdo);
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        $newCheckOut = trim($data['new_check_out'] ?? '');
+        $additionalPrice = floatval($data['additional_price'] ?? 0);
+        $additionalPaid = floatval($data['additional_paid'] ?? 0);
+        $paymentMethod = $data['payment_method'] ?? 'pix';
+        $adminNotes = trim($data['notes'] ?? '');
+
+        if (empty($newCheckOut)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'A nova data de check-out é obrigatória']);
+            return;
+        }
+
+        $stmt = $pdo->prepare("SELECT r.*, a.name_pt as accommodation_name FROM reservations r LEFT JOIN accommodations a ON r.accommodation_id = a.id WHERE r.id = ?");
+        $stmt->execute([$id]);
+        $res = $stmt->fetch();
+
+        if (!$res) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Reserva não encontrada']);
+            return;
+        }
+
+        $oldCheckOut = $res['check_out'];
+        if (strtotime($newCheckOut) <= strtotime($oldCheckOut)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'A nova data de check-out deve ser posterior à data atual (' . date('d/m/Y', strtotime($oldCheckOut)) . ')']);
+            return;
+        }
+
+        $diffNights = max(1, round((strtotime($newCheckOut) - strtotime($oldCheckOut)) / 86400));
+        $oldTotal = floatval($res['total_price']);
+        $oldPaid = floatval($res['paid_amount']);
+
+        $newTotal = $oldTotal + $additionalPrice;
+        $newPaid = $oldPaid + $additionalPaid;
+
+        // Determine new payment status
+        if ($newPaid >= $newTotal && $newTotal > 0) {
+            $newPaymentStatus = 'paid';
+        } else if ($newPaid > 0) {
+            $newPaymentStatus = 'partial';
+        } else {
+            $newPaymentStatus = 'unpaid';
+        }
+
+        // Build log note
+        $extMsg = "\n[Prorrogação em " . date('d/m/Y H:i') . ": Check-out alterado de " . date('d/m/Y', strtotime($oldCheckOut)) . " para " . date('d/m/Y', strtotime($newCheckOut)) . " (+{$diffNights} diárias). Adicional cobrado: R$ " . number_format($additionalPrice, 2, ',', '.') . ($additionalPaid > 0 ? " | Pago: R$ " . number_format($additionalPaid, 2, ',', '.') : "") . ($adminNotes ? " - Obs: {$adminNotes}" : "") . "]";
+        $updatedNotes = trim(($res['notes'] ?? '') . $extMsg);
+
+        // Update reservation
+        $stmtUp = $pdo->prepare("UPDATE reservations SET 
+            check_out = ?, total_price = ?, paid_amount = ?, payment_status = ?, notes = ?
+            WHERE id = ?");
+        $stmtUp->execute([
+            $newCheckOut, $newTotal, $newPaid, $newPaymentStatus, $updatedNotes, $id
+        ]);
+
+        // Register income for the additional payment if received now
+        if ($additionalPaid > 0) {
+            $stmtFin = $pdo->prepare("INSERT INTO financial_transactions 
+                (reservation_id, accommodation_id, checkin_date, checkout_date, nights, type, category, amount, payment_method, transaction_date, description, status)
+                VALUES (?, ?, ?, ?, ?, 'income', 'diaria', ?, ?, ?, ?, 'completed')");
+            $stmtFin->execute([
+                $id,
+                $res['accommodation_id'],
+                $oldCheckOut,
+                $newCheckOut,
+                $diffNights,
+                $additionalPaid,
+                $paymentMethod,
+                date('Y-m-d'),
+                "Prorrogação Reserva #{$id} - {$res['guest_name']} (+{$diffNights} diárias até " . date('d/m/Y', strtotime($newCheckOut)) . ")"
+            ]);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => "Estadia estendida com sucesso até " . date('d/m/Y', strtotime($newCheckOut)) . " (+{$diffNights} noites).",
+            'new_check_out' => $newCheckOut,
+            'new_total_price' => $newTotal,
+            'new_paid_amount' => $newPaid,
+            'remaining_balance' => max(0, $newTotal - $newPaid)
+        ]);
     }
 
     public static function updateStatus($pdo, $id) {
@@ -211,9 +433,22 @@ class ReservationsController {
             $updates[] = "status = ?";
             $params[] = $status;
         }
-        if ($paymentStatus !== null) {
-            $updates[] = "payment_status = ?";
-            $params[] = $paymentStatus;
+        if (!empty($data['quick_pay'])) {
+            $updates[] = "paid_amount = total_price";
+            $updates[] = "payment_status = 'paid'";
+            $paymentStatus = 'paid';
+        } else {
+            if ($paymentStatus !== null) {
+                $updates[] = "payment_status = ?";
+                $params[] = $paymentStatus;
+                if ($paymentStatus === 'paid') {
+                    $updates[] = "paid_amount = total_price";
+                }
+            }
+            if (isset($data['paid_amount'])) {
+                $updates[] = "paid_amount = ?";
+                $params[] = floatval($data['paid_amount']);
+            }
         }
         if (isset($data['notes'])) {
             $updates[] = "notes = ?";

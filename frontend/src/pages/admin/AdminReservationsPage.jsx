@@ -43,10 +43,20 @@ export default function AdminReservationsPage() {
     children_count: 0,
     has_pets: 0,
     total_price: 450,
+    paid_amount: 0,
     status: 'confirmed',
     payment_status: 'paid',
     notes: ''
   });
+
+  // Extend Stay State
+  const [showExtendBox, setShowExtendBox] = useState(false);
+  const [extendForm, setExtendForm] = useState({
+    new_check_out: '',
+    additional_price: 0,
+    additional_paid: 0
+  });
+  const [submittingExtend, setSubmittingExtend] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -79,13 +89,37 @@ export default function AdminReservationsPage() {
     setCurrentDate(new Date());
   };
 
-  const getReservationForCell = (roomId, dateStr) => {
-    return reservations.find(r => {
-      if (Number(r.accommodation_id) !== Number(roomId)) return false;
-      if (r.status === 'cancelled') return false;
-      // Check if dateStr falls between check_in and check_out
-      return dateStr >= r.check_in && dateStr < r.check_out;
-    });
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'checked_in':
+        return 'bg-rose-500 text-white shadow-xs';
+      case 'confirmed':
+        return 'bg-blue-600 text-white shadow-xs';
+      case 'pending':
+        return 'bg-amber-400 text-stone-950 font-black';
+      case 'checked_out':
+        return 'bg-stone-500 text-white';
+      case 'cancelled':
+        return 'bg-rose-800 text-white line-through';
+      default:
+        return 'bg-stone-400 text-white';
+    }
+  };
+
+  const getCellReservations = (roomId, dateStr) => {
+    // Departing: check_out === dateStr (morning checkout until 12:00h)
+    const departing = reservations.find(r => 
+      Number(r.accommodation_id) === Number(roomId) &&
+      r.status !== 'cancelled' &&
+      r.check_out === dateStr
+    );
+    // Staying: check_in <= dateStr < check_out (afternoon arrival or ongoing stay)
+    const staying = reservations.find(r => 
+      Number(r.accommodation_id) === Number(roomId) &&
+      r.status !== 'cancelled' &&
+      dateStr >= r.check_in && dateStr < r.check_out
+    );
+    return { departing, staying };
   };
 
   const handleDayClick = (roomId, dateStr) => {
@@ -93,6 +127,7 @@ export default function AdminReservationsPage() {
     const room = rooms.find(r => Number(r.id) === Number(roomId));
     const nextDay = new Date(new Date(dateStr + 'T12:00:00').getTime() + 86400000 * 2).toISOString().split('T')[0];
     const basePrice = room ? Number(room.base_price || 350) : 350;
+    const initialTotal = basePrice * 2;
     
     setForm({
       accommodation_id: roomId,
@@ -104,16 +139,21 @@ export default function AdminReservationsPage() {
       adults_count: 2,
       children_count: 0,
       has_pets: 0,
-      total_price: basePrice * 2,
+      total_price: initialTotal,
+      paid_amount: Math.round(initialTotal * 0.5),
       status: 'confirmed',
-      payment_status: 'paid',
+      payment_status: 'partial',
       notes: ''
     });
+    setShowExtendBox(false);
     setModalOpen(true);
   };
 
   const openReservationDetails = (res) => {
     setEditingRes(res);
+    const totalPrice = Number(res.total_price || 0);
+    const paidAmount = Number(res.paid_amount ?? (res.payment_status === 'paid' ? totalPrice : 0));
+
     setForm({
       accommodation_id: res.accommodation_id,
       guest_name: res.guest_name,
@@ -124,11 +164,24 @@ export default function AdminReservationsPage() {
       adults_count: res.adults_count || 2,
       children_count: res.children_count || 0,
       has_pets: res.has_pets || 0,
-      total_price: res.total_price || 0,
+      total_price: totalPrice,
+      paid_amount: paidAmount,
       status: res.status,
-      payment_status: res.payment_status,
+      payment_status: res.payment_status || (paidAmount >= totalPrice ? 'paid' : paidAmount > 0 ? 'partial' : 'unpaid'),
       notes: res.notes || ''
     });
+
+    const currentOut = new Date(res.check_out + 'T12:00:00');
+    const nextDay = new Date(currentOut.getTime() + 86400000).toISOString().split('T')[0];
+    const room = rooms.find(r => Number(r.id) === Number(res.accommodation_id));
+    const basePrice = room ? Number(room.base_price || 350) : 350;
+
+    setExtendForm({
+      new_check_out: nextDay,
+      additional_price: basePrice,
+      additional_paid: 0
+    });
+    setShowExtendBox(false);
     setModalOpen(true);
   };
 
@@ -150,9 +203,10 @@ export default function AdminReservationsPage() {
 
   const openCancelModal = (res) => {
     setResToCancel(res);
+    const maxRefund = Number(res.paid_amount ?? (res.payment_status === 'paid' ? res.total_price : 0));
     setCancelForm({
-      refund_type: res.payment_status === 'paid' ? 'full' : 'none',
-      refund_amount: res.total_price || 0,
+      refund_type: maxRefund > 0 ? (res.payment_status === 'paid' ? 'full' : 'partial') : 'none',
+      refund_amount: maxRefund,
       refund_reason: 'Cancelamento a pedido do hóspede',
       payment_method: 'pix'
     });
@@ -217,7 +271,7 @@ export default function AdminReservationsPage() {
     e.preventDefault();
     try {
       if (editingRes) {
-        await api.updateReservationStatus(editingRes.id, form.status, form.payment_status, form.notes);
+        await api.updateReservation(editingRes.id, form);
       } else {
         await api.createAdminReservation(form);
       }
@@ -225,6 +279,42 @@ export default function AdminReservationsPage() {
       loadData();
     } catch (err) {
       alert(err.message || 'Erro ao salvar reserva');
+    }
+  };
+
+  const handleExtendStay = async () => {
+    if (!editingRes || !extendForm.new_check_out) {
+      alert('Informe a nova data de check-out');
+      return;
+    }
+    if (extendForm.new_check_out <= form.check_out) {
+      alert(`A nova data de check-out deve ser posterior à data atual (${form.check_out})`);
+      return;
+    }
+    setSubmittingExtend(true);
+    try {
+      const res = await api.extendReservationStay(editingRes.id, extendForm);
+      alert(res.message || 'Estadia estendida com sucesso!');
+      setShowExtendBox(false);
+      setModalOpen(false);
+      loadData();
+    } catch (err) {
+      alert(err.message || 'Erro ao estender estadia');
+    } finally {
+      setSubmittingExtend(false);
+    }
+  };
+
+  const handleQuickPay = async (res) => {
+    try {
+      await api.updateReservation(res.id, {
+        quick_pay: true,
+        paid_amount: res.total_price,
+        payment_status: 'paid'
+      });
+      loadData();
+    } catch (err) {
+      alert(err.message || 'Erro ao quitar saldo da reserva');
     }
   };
 
@@ -579,7 +669,7 @@ export default function AdminReservationsPage() {
           
           {/* Enhanced Color Legend & Tooltip Hint */}
           <div className="p-4 bg-stone-50/80 border-b border-stone-200/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-3 sm:gap-5 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
               <span className="flex items-center gap-1.5 text-emerald-800 font-bold text-[11px] bg-emerald-50 border border-emerald-300 px-2.5 py-1 rounded-lg">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> 🟢 Livre (com valor)
               </span>
@@ -591,6 +681,9 @@ export default function AdminReservationsPage() {
               </span>
               <span className="flex items-center gap-1.5 text-rose-900 font-bold text-[11px] bg-rose-50 border border-rose-300 px-2.5 py-1 rounded-lg">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" /> 🔴 No Local (Check-in Ativo)
+              </span>
+              <span className="flex items-center gap-1.5 text-purple-900 font-bold text-[11px] bg-purple-50 border border-purple-300 px-2.5 py-1 rounded-lg" title="Saída e Nova Entrada no mesmo dia (Turnover)">
+                <span className="text-sm leading-none">🔄</span> <strong>Troca no Mesmo Dia</strong> (12h saída / 14h entrada)
               </span>
             </div>
 
@@ -643,34 +736,103 @@ export default function AdminReservationsPage() {
 
                     {/* Days Cells */}
                     {daysInMonth.map(dayObj => {
-                      const res = getReservationForCell(room.id, dayObj.dateStr);
+                      const { departing, staying } = getCellReservations(room.id, dayObj.dateStr);
 
-                      if (res) {
-                        const isStart = res.check_in === dayObj.dateStr;
-                        const isEnd = res.check_out === dayObj.dateStr;
+                      // Case 1: Troca no mesmo dia (Checkout 12h e Novo Checkin 14h)
+                      if (departing && staying) {
+                        return (
+                          <td
+                            key={dayObj.day}
+                            className="p-0.5 text-center border-l border-stone-200/40 relative group"
+                          >
+                            <div className="h-9 flex rounded-lg overflow-hidden border border-purple-300 shadow-2xs">
+                              {/* Manhã: Saída até 12h */}
+                              <button
+                                type="button"
+                                onClick={() => openReservationDetails(departing)}
+                                onMouseEnter={() => setHoveredRes(departing)}
+                                onMouseLeave={() => setHoveredRes(null)}
+                                title={`🏁 Checkout Manhã (até 12h): #${departing.id} - ${departing.guest_name} • R$ ${departing.total_price}`}
+                                className={`w-1/2 h-full flex flex-col items-center justify-center text-[8px] font-bold border-r border-white/50 hover:brightness-110 transition-all ${getStatusBadgeClass(departing.status)}`}
+                              >
+                                <span className="leading-none text-[8px]">🏁 12h</span>
+                                <span className="truncate max-w-[28px] leading-tight text-[7px] opacity-90">{departing.guest_name.split(' ')[0]}</span>
+                              </button>
 
-                        const badgeColor = 
-                          res.status === 'checked_in' ? 'bg-rose-500 text-white shadow-xs' :
-                          res.status === 'confirmed' ? 'bg-blue-600 text-white shadow-xs' :
-                          res.status === 'pending' ? 'bg-amber-400 text-stone-950 font-black' :
-                          'bg-stone-400 text-white';
+                              {/* Tarde: Entrada a partir das 14h */}
+                              <button
+                                type="button"
+                                onClick={() => openReservationDetails(staying)}
+                                onMouseEnter={() => setHoveredRes(staying)}
+                                onMouseLeave={() => setHoveredRes(null)}
+                                title={`🏖️ Check-in Tarde (a partir das 14h): #${staying.id} - ${staying.guest_name} • R$ ${staying.total_price}`}
+                                className={`w-1/2 h-full flex flex-col items-center justify-center text-[8px] font-bold hover:brightness-110 transition-all ${getStatusBadgeClass(staying.status)}`}
+                              >
+                                <span className="leading-none text-[8px]">🏖️ 14h</span>
+                                <span className="truncate max-w-[28px] leading-tight text-[7px] opacity-90">{staying.guest_name.split(' ')[0]}</span>
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      // Case 2: Checkout Manhã (até 12h) e Tarde Livre para novo hóspede!
+                      if (departing && !staying) {
+                        return (
+                          <td
+                            key={dayObj.day}
+                            className="p-0.5 text-center border-l border-stone-200/40 relative group"
+                          >
+                            <div className="h-9 flex rounded-lg overflow-hidden border border-emerald-300 shadow-2xs">
+                              {/* Manhã: Checkout */}
+                              <button
+                                type="button"
+                                onClick={() => openReservationDetails(departing)}
+                                onMouseEnter={() => setHoveredRes(departing)}
+                                onMouseLeave={() => setHoveredRes(null)}
+                                title={`🏁 Checkout até 12h: #${departing.id} - ${departing.guest_name}`}
+                                className={`w-1/2 h-full flex flex-col items-center justify-center text-[8px] font-bold border-r border-stone-300 hover:brightness-110 transition-all ${getStatusBadgeClass(departing.status)}`}
+                              >
+                                <span className="leading-none text-[8px]">🏁 12h</span>
+                                <span className="truncate max-w-[28px] leading-tight text-[7px] opacity-90">{departing.guest_name.split(' ')[0]}</span>
+                              </button>
+
+                              {/* Tarde: Disponível para agendamento hoje a partir das 14h */}
+                              <button
+                                type="button"
+                                onClick={() => handleDayClick(room.id, dayObj.dateStr)}
+                                title={`🟢 Livre para Check-in hoje a partir das 14h (R$ ${room.base_price}/noite). Clique para agendar!`}
+                                className="w-1/2 h-full flex flex-col items-center justify-center text-[8px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-all"
+                              >
+                                <span className="leading-none text-[8px]">+14h</span>
+                                <span className="leading-tight text-[7px] text-emerald-600">Livre</span>
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      // Case 3: Hóspede em estadia
+                      if (staying) {
+                        const isStart = staying.check_in === dayObj.dateStr;
+                        const badgeColor = getStatusBadgeClass(staying.status);
 
                         return (
                           <td
                             key={dayObj.day}
-                            onClick={() => openReservationDetails(res)}
-                            onMouseEnter={() => setHoveredRes(res)}
+                            onClick={() => openReservationDetails(staying)}
+                            onMouseEnter={() => setHoveredRes(staying)}
                             onMouseLeave={() => setHoveredRes(null)}
-                            title={`Reserva #${res.id} - ${res.guest_name} (${res.check_in} a ${res.check_out}) • R$ ${res.total_price}`}
+                            title={`Reserva #${staying.id} - ${staying.guest_name} (${staying.check_in} a ${staying.check_out}) • R$ ${staying.total_price}`}
                             className="p-0.5 text-center border-l border-stone-200/30 cursor-pointer group relative"
                           >
                             <div className={`h-9 flex items-center justify-center text-[10px] font-bold px-1 transition-all group-hover:scale-105 group-hover:brightness-110 ${badgeColor} ${
                               isStart ? 'rounded-l-xl' : ''
-                            } ${isEnd ? 'rounded-r-xl' : ''}`}>
+                            }`}>
                               {isStart ? (
                                 <span className="truncate max-w-[70px] text-[10px] flex items-center gap-1 font-bold">
-                                  {res.status === 'checked_in' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
-                                  {res.guest_name.split(' ')[0]}
+                                  {staying.status === 'checked_in' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
+                                  {staying.guest_name.split(' ')[0]}
                                 </span>
                               ) : (
                                 <span className="text-[8px] opacity-75">●</span>
@@ -680,7 +842,7 @@ export default function AdminReservationsPage() {
                         );
                       }
 
-                      // 🟢 Célula Livre (Verde Esmeralda Nítido com Preço da Diária e Clique)
+                      // Case 4: Célula 100% Livre (Verde Esmeralda Nítido com Preço da Diária e Clique)
                       return (
                         <td
                           key={dayObj.day}
@@ -753,16 +915,17 @@ export default function AdminReservationsPage() {
       {viewMode === 'calendar' && calendarSubView === 'cards' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRooms.map(room => {
-            const isOccupiedToday = reservations.some(r => 
+            const departingToday = reservations.find(r => 
               Number(r.accommodation_id) === Number(room.id) &&
               r.status !== 'cancelled' &&
-              todayStr >= r.check_in && todayStr < r.check_out
+              r.check_out === todayStr
             );
             const activeResToday = reservations.find(r => 
               Number(r.accommodation_id) === Number(room.id) &&
               r.status !== 'cancelled' &&
               todayStr >= r.check_in && todayStr < r.check_out
             );
+            const isTurnoverToday = Boolean(departingToday && activeResToday);
 
             return (
               <div
@@ -782,7 +945,15 @@ export default function AdminReservationsPage() {
                     </div>
 
                     {/* Today Badge */}
-                    {isOccupiedToday ? (
+                    {isTurnoverToday ? (
+                      <span className="shrink-0 text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1 rounded-full flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" /> 🔄 Troca Hoje
+                      </span>
+                    ) : departingToday ? (
+                      <span className="shrink-0 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-500" /> 🏁 Saída 12h
+                      </span>
+                    ) : activeResToday ? (
                       <span className="shrink-0 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1 rounded-full flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" /> 🔴 Ocupado
                       </span>
@@ -793,7 +964,25 @@ export default function AdminReservationsPage() {
                     )}
                   </div>
 
-                  {activeResToday && (
+                  {isTurnoverToday ? (
+                    <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-2xl text-xs space-y-1">
+                      <span className="font-bold text-purple-900 block truncate">
+                        🏁 Saída até 12h: {departingToday.guest_name}
+                      </span>
+                      <span className="text-purple-700 text-[11px] block truncate font-medium">
+                        🏖️ Entrada às 14h: {activeResToday.guest_name}
+                      </span>
+                    </div>
+                  ) : departingToday ? (
+                    <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl text-xs space-y-1">
+                      <span className="font-bold text-amber-900 block truncate">
+                        🏁 Saída até 12h: {departingToday.guest_name}
+                      </span>
+                      <span className="text-emerald-700 text-[11px] block font-bold">
+                        🟢 Quarto liberado para nova entrada às 14h
+                      </span>
+                    </div>
+                  ) : activeResToday ? (
                     <div className="p-3 bg-rose-50/70 border border-rose-200 rounded-2xl text-xs space-y-1">
                       <span className="font-bold text-rose-900 block truncate">
                         👤 Hóspede: {activeResToday.guest_name}
@@ -802,7 +991,7 @@ export default function AdminReservationsPage() {
                         Saída prevista: {activeResToday.check_out} ({activeResToday.guest_phone})
                       </span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 {/* Month Days Overview in Pills */}
@@ -814,17 +1003,38 @@ export default function AdminReservationsPage() {
 
                   <div className="grid grid-cols-7 gap-1 text-center">
                     {daysInMonth.map(dayObj => {
-                      const res = getReservationForCell(room.id, dayObj.dateStr);
-                      if (res) {
-                        const bgCol = 
-                          res.status === 'checked_in' ? 'bg-rose-500 text-white' :
-                          res.status === 'confirmed' ? 'bg-blue-600 text-white' :
-                          res.status === 'pending' ? 'bg-amber-400 text-stone-950 font-bold' : 'bg-stone-400 text-white';
+                      const { departing, staying } = getCellReservations(room.id, dayObj.dateStr);
+                      if (departing && staying) {
                         return (
                           <button
                             key={dayObj.day}
-                            onClick={() => openReservationDetails(res)}
-                            title={`Reserva #${res.id}: ${res.guest_name}`}
+                            onClick={() => openReservationDetails(staying)}
+                            title={`🔄 Troca de Hóspede: Saída de ${departing.guest_name} (12h) e Entrada de ${staying.guest_name} (14h)`}
+                            className="h-7 rounded-lg text-[9px] font-black bg-purple-600 text-white flex items-center justify-center hover:scale-110 transition-transform shadow-2xs"
+                          >
+                            🔄{dayObj.day}
+                          </button>
+                        );
+                      }
+                      if (departing && !staying) {
+                        return (
+                          <button
+                            key={dayObj.day}
+                            onClick={() => handleDayClick(room.id, dayObj.dateStr)}
+                            title={`🏁 Saída de ${departing.guest_name} até 12h. Livre a partir das 14h!`}
+                            className="h-7 rounded-lg text-[9px] font-bold bg-amber-100 hover:bg-emerald-200 text-amber-900 border border-amber-300 flex items-center justify-center hover:scale-110 transition-transform"
+                          >
+                            🏁{dayObj.day}
+                          </button>
+                        );
+                      }
+                      if (staying) {
+                        const bgCol = getStatusBadgeClass(staying.status);
+                        return (
+                          <button
+                            key={dayObj.day}
+                            onClick={() => openReservationDetails(staying)}
+                            title={`Reserva #${staying.id}: ${staying.guest_name}`}
                             className={`h-7 rounded-lg text-[10px] font-bold ${bgCol} flex items-center justify-center hover:scale-110 transition-transform`}
                           >
                             {dayObj.day}
@@ -922,14 +1132,28 @@ export default function AdminReservationsPage() {
                         <div className="font-bold text-stone-900 font-serif text-sm">
                           {formatCurrency(res.total_price)}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={`text-[10px] font-bold uppercase ${
-                            res.payment_status === 'paid' ? 'text-emerald-600' : 'text-amber-600'
-                          }`}>
-                            {res.payment_status === 'paid' ? '● Pago' : '○ Não Pago'}
-                          </span>
+                        <div className="flex flex-col gap-1 mt-1">
+                          {res.payment_status === 'paid' || Number(res.paid_amount) >= Number(res.total_price) ? (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full inline-block self-start">
+                              ● 100% Quitado
+                            </span>
+                          ) : res.payment_status === 'partial' || (Number(res.paid_amount) > 0 && Number(res.paid_amount) < Number(res.total_price)) ? (
+                            <div className="space-y-0.5">
+                              <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded inline-block">
+                                🟡 Sinal: {formatCurrency(res.paid_amount || 0)}
+                              </span>
+                              <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded block">
+                                Resta: {formatCurrency(res.remaining_balance ?? (res.total_price - (res.paid_amount || 0)))}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-full inline-block self-start">
+                              ○ Em Aberto
+                            </span>
+                          )}
+
                           {res.is_in_finance > 0 && (
-                            <span className="text-[9px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.2 rounded border border-emerald-200" title="Lançado no Módulo Financeiro">
+                            <span className="text-[9px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.2 rounded border border-emerald-200 inline-block self-start" title="Lançado no Módulo Financeiro">
                               Financeiro ✓
                             </span>
                           )}
@@ -958,6 +1182,16 @@ export default function AdminReservationsPage() {
 
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {res.payment_status !== 'paid' && res.status !== 'cancelled' && (
+                            <button
+                              onClick={() => handleQuickPay(res)}
+                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 p-2 rounded-xl transition-colors font-bold flex items-center gap-1 text-[11px]"
+                              title="⚡ Quitar Saldo Restante (100% Pago)"
+                            >
+                              <DollarSign className="w-4 h-4" />
+                              <span className="hidden xl:inline">Quitar</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => openReservationDetails(res)}
                             className="bg-stone-100 hover:bg-stone-200 text-stone-700 p-2 rounded-xl transition-colors"
@@ -1094,33 +1328,260 @@ export default function AdminReservationsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
-                    Valor Total (R$) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={form.total_price}
-                    onChange={(e) => setForm({ ...form, total_price: Number(e.target.value) })}
-                    className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none font-bold text-amber-700"
-                  />
+              {/* Bloco de Extensão de Diária (quando editando reserva existente) */}
+              {editingRes && (
+                <div className="bg-sand-50/70 rounded-2xl p-4 border border-amber-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-amber-700" />
+                      <span className="text-xs font-bold text-stone-900">Extensão de Diária / Estadia</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowExtendBox(!showExtendBox)}
+                      className="text-xs font-bold text-amber-800 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-3 py-1 rounded-xl transition-all"
+                    >
+                      {showExtendBox ? 'Recolher' : '➕ Estender Diária'}
+                    </button>
+                  </div>
+
+                  {showExtendBox && (
+                    <div className="pt-3 border-t border-amber-200/60 space-y-3">
+                      <p className="text-[11px] text-stone-600">
+                        O administrador tem liberdade total: defina a nova data e o valor adicional (inclusive <strong>R$ 0</strong> para cortesia ou late checkout).
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-stone-700 uppercase mb-1">
+                            Novo Check-out *
+                          </label>
+                          <input
+                            type="date"
+                            min={form.check_out}
+                            value={extendForm.new_check_out}
+                            onChange={(e) => setExtendForm({ ...extendForm, new_check_out: e.target.value })}
+                            className="w-full text-xs p-2 rounded-xl border border-stone-300 bg-white focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-stone-700 uppercase mb-1">
+                            Valor Adicional (R$)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={extendForm.additional_price}
+                            onChange={(e) => setExtendForm({ ...extendForm, additional_price: Number(e.target.value) })}
+                            className="w-full text-xs p-2 rounded-xl border border-stone-300 bg-white font-bold text-stone-900 focus:outline-none"
+                            placeholder="0.00"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-stone-700 uppercase mb-1">
+                            Valor Pago Agora (R$)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={extendForm.additional_paid}
+                            onChange={(e) => setExtendForm({ ...extendForm, additional_paid: Number(e.target.value) })}
+                            className="w-full text-xs p-2 rounded-xl border border-stone-300 bg-white font-bold text-emerald-700 focus:outline-none"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          disabled={submittingExtend || !extendForm.new_check_out}
+                          onClick={handleExtendStay}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>{submittingExtend ? 'Processando...' : 'Confirmar Extensão'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
-                    Status Pagamento
-                  </label>
-                  <select
-                    value={form.payment_status}
-                    onChange={(e) => setForm({ ...form, payment_status: e.target.value })}
-                    className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none"
+              )}
+
+              {/* Bloco Financeiro: Total, Sinal Pago e Saldo */}
+              <div className="bg-sand-50/80 p-4 rounded-2xl border border-stone-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-stone-700 uppercase flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-amber-600" />
+                    Pagamento & Sinal Parcial
+                  </span>
+                  {Math.max(0, Number(form.total_price || 0) - Number(form.paid_amount || 0)) > 0 ? (
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full">
+                      Saldo Aberto: {formatCurrency(Math.max(0, Number(form.total_price || 0) - Number(form.paid_amount || 0)))}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
+                      100% Quitado ✓
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-600 uppercase mb-1">
+                      Valor Total da Reserva (R$) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      value={form.total_price}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setForm(prev => {
+                          const newForm = { ...prev, total_price: val };
+                          if (newForm.paid_amount >= val && val > 0) newForm.payment_status = 'paid';
+                          else if (newForm.paid_amount > 0) newForm.payment_status = 'partial';
+                          else newForm.payment_status = 'unpaid';
+                          return newForm;
+                        });
+                      }}
+                      className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none font-bold text-stone-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-600 uppercase mb-1">
+                      Valor Pago / Sinal (R$) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.paid_amount}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setForm(prev => {
+                          const newForm = { ...prev, paid_amount: val };
+                          if (val >= prev.total_price && prev.total_price > 0) newForm.payment_status = 'paid';
+                          else if (val > 0) newForm.payment_status = 'partial';
+                          else newForm.payment_status = 'unpaid';
+                          return newForm;
+                        });
+                      }}
+                      className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none font-bold text-emerald-700"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Helper Buttons */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm(prev => ({
+                        ...prev,
+                        paid_amount: prev.total_price,
+                        payment_status: 'paid'
+                      }));
+                    }}
+                    className="text-[10px] font-bold bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2.5 py-1 rounded-lg transition-colors"
                   >
-                    <option value="paid">Pago</option>
-                    <option value="unpaid">Não Pago</option>
-                  </select>
+                    ⚡ Quitar 100%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const half = Math.round(form.total_price * 0.5 * 100) / 100;
+                      setForm(prev => ({
+                        ...prev,
+                        paid_amount: half,
+                        payment_status: 'partial'
+                      }));
+                    }}
+                    className="text-[10px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded-lg transition-colors"
+                  >
+                    50% Sinal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const thirty = Math.round(form.total_price * 0.3 * 100) / 100;
+                      setForm(prev => ({
+                        ...prev,
+                        paid_amount: thirty,
+                        payment_status: 'partial'
+                      }));
+                    }}
+                    className="text-[10px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded-lg transition-colors"
+                  >
+                    30% Sinal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm(prev => ({
+                        ...prev,
+                        paid_amount: 0,
+                        payment_status: 'unpaid'
+                      }));
+                    }}
+                    className="text-[10px] font-semibold bg-stone-200 hover:bg-stone-300 text-stone-700 px-2.5 py-1 rounded-lg transition-colors"
+                  >
+                    Zerar (Não Pago)
+                  </button>
                 </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-600 uppercase mb-1">
+                      Status de Pagamento
+                    </label>
+                    <select
+                      value={form.payment_status}
+                      onChange={(e) => setForm({ ...form, payment_status: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none"
+                    >
+                      <option value="paid">✅ 100% Quitado / Pago</option>
+                      <option value="partial">🟡 Sinal Parcial (Saldo Restante)</option>
+                      <option value="unpaid">⏳ Não Pago (Aguardando)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-600 uppercase mb-1">
+                      Status da Reserva
+                    </label>
+                    <select
+                      value={form.status}
+                      onChange={(e) => setForm({ ...form, status: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none"
+                    >
+                      <option value="confirmed">✅ Confirmada</option>
+                      <option value="checked_in">🏖️ Check-in Ativo</option>
+                      <option value="pending">⏳ Pendente</option>
+                      <option value="checked_out">🏁 Finalizada (Check-out)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-600 uppercase mb-1">
+                  Observações Internas
+                </label>
+                <textarea
+                  rows={2}
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  placeholder="Ex: Hóspede pagou 50% de sinal no PIX. Saldo a pagar no check-in."
+                  className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:outline-none"
+                />
               </div>
 
               <div className="flex items-center justify-between gap-3 pt-4 border-t border-stone-100">
