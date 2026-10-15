@@ -6,7 +6,7 @@ import {
   Check, Copy, MessageCircle, Send, ChevronLeft, ChevronRight,
   Maximize2, Image as ImageIcon, X
 } from 'lucide-react';
-import YouTubeEmbed from '../../components/YouTubeEmbed';
+import SocialVideoEmbed from '../../components/SocialVideoEmbed';
 import SEOHead from '../../components/SEOHead';
 import { api } from '../../services/api';
 
@@ -241,10 +241,10 @@ export default function BlogPostPage() {
         </div>
       )}
 
-      {/* Embedded YouTube Video if present */}
-      {post.youtube_video_url && (
+      {/* Embedded Social Video if present (YouTube, Instagram, Facebook, X) */}
+      {(post.youtube_video_url || post.video_url) && (
         <div className="space-y-3 pt-2">
-          <YouTubeEmbed url={post.youtube_video_url} title={`Vídeo do Artigo: ${title}`} />
+          <SocialVideoEmbed url={post.youtube_video_url || post.video_url} title={`Vídeo da Matéria: ${title}`} />
         </div>
       )}
 

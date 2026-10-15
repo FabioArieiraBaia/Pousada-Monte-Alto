@@ -67,10 +67,10 @@ export default function BlogPage() {
                       alt={title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    {post.youtube_video_url && (
-                      <span className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md">
-                        <Video className="w-3 h-3" />
-                        Vídeo Incluso
+                    {(post.youtube_video_url || post.video_url) && (
+                      <span className="absolute top-3 left-3 bg-stone-950/90 text-amber-400 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-lg border border-amber-500/30 backdrop-blur-md">
+                        <Video className="w-3 h-3 text-amber-400" />
+                        Vídeo Social
                       </span>
                     )}
                   </div>

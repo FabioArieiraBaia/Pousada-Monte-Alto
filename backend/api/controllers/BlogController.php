@@ -25,6 +25,7 @@ class BlogController {
             } else {
                 $p['gallery_photos'] = [];
             }
+            $p['video_url'] = $p['youtube_video_url'] ?? '';
         }
         
         echo json_encode(['success' => true, 'data' => $posts]);
@@ -47,6 +48,7 @@ class BlogController {
         } else {
             $post['gallery_photos'] = [];
         }
+        $post['video_url'] = $post['youtube_video_url'] ?? '';
         
         echo json_encode(['success' => true, 'data' => $post]);
     }
@@ -61,6 +63,7 @@ class BlogController {
         }
         
         $galleryPhotos = isset($data['gallery_photos']) ? (is_array($data['gallery_photos']) ? json_encode($data['gallery_photos']) : $data['gallery_photos']) : null;
+        $videoUrl = trim($data['video_url'] ?? $data['youtube_video_url'] ?? '');
         
         $stmt = $pdo->prepare("INSERT INTO blog_posts 
             (slug, title_pt, title_en, title_es, excerpt_pt, excerpt_en, excerpt_es, content_pt, content_en, content_es, featured_image, gallery_photos, youtube_video_url, tags, is_published) 
@@ -79,7 +82,7 @@ class BlogController {
             $data['content_es'] ?? '',
             $data['featured_image'] ?? '',
             $galleryPhotos,
-            $data['youtube_video_url'] ?? '',
+            $videoUrl,
             $data['tags'] ?? '',
             isset($data['is_published']) ? intval($data['is_published']) : 1
         ]);
@@ -92,6 +95,7 @@ class BlogController {
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
         
         $galleryPhotos = isset($data['gallery_photos']) ? (is_array($data['gallery_photos']) ? json_encode($data['gallery_photos']) : $data['gallery_photos']) : null;
+        $videoUrl = trim($data['video_url'] ?? $data['youtube_video_url'] ?? '');
 
         $stmt = $pdo->prepare("UPDATE blog_posts SET 
             title_pt = ?, title_en = ?, title_es = ?,
@@ -113,7 +117,7 @@ class BlogController {
             $data['content_es'] ?? '',
             $data['featured_image'] ?? '',
             $galleryPhotos,
-            $data['youtube_video_url'] ?? '',
+            $videoUrl,
             $data['tags'] ?? '',
             isset($data['is_published']) ? intval($data['is_published']) : 1,
             $id

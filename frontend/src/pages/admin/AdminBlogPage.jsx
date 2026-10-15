@@ -5,7 +5,7 @@ import {
   Upload, Star, Loader2, Bold, Italic, Heading2,
   List, Quote, Link as LinkIcon, Sparkles, Bot, Wand2, RefreshCw
 } from 'lucide-react';
-import YouTubeEmbed from '../../components/YouTubeEmbed';
+import SocialVideoEmbed from '../../components/SocialVideoEmbed';
 import { api } from '../../services/api';
 
 export default function AdminBlogPage() {
@@ -850,31 +850,45 @@ export default function AdminBlogPage() {
                 )}
               </div>
 
-              {/* Vídeo do YouTube */}
+              {/* Vídeo da Matéria (YouTube, Instagram, Facebook ou X) */}
               <div className="space-y-3 bg-stone-50/70 p-5 rounded-2xl border border-stone-200/80">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-stone-700 uppercase">
-                    Link de Vídeo no YouTube (Opcional)
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <label className="block text-xs font-bold text-stone-700 uppercase flex items-center gap-1.5">
+                    <Video className="w-4 h-4 text-amber-600" />
+                    <span>Vídeo em Destaque no Artigo (Opcional)</span>
                   </label>
-                  <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-semibold">
-                    Aceita Shorts & Vídeos 16:9
+                  <span className="text-[10px] text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full font-bold">
+                    YouTube • Instagram • Facebook • X (Twitter)
                   </span>
                 </div>
                 <input
                   type="text"
                   value={form.youtube_video_url}
                   onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })}
-                  placeholder="https://www.youtube.com/watch?v=... ou https://youtube.com/shorts/..."
-                  className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  placeholder="Cole o link do YouTube, Instagram Reel/Post, Facebook Vídeo ou post do X (Twitter)..."
+                  className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white font-medium"
                 />
-                <p className="text-[10px] text-stone-400">
-                  Compatível com vídeos do YouTube e <strong>YouTube Shorts</strong>. O player adapta a proporção vertical automaticamente.
-                </p>
+
+                {/* Badges explicativas de plataformas suportadas */}
+                <div className="flex items-center gap-2 flex-wrap text-[11px] text-stone-500">
+                  <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-stone-200 text-stone-700 font-semibold text-[10px]">
+                    <span className="w-2 h-2 rounded-full bg-red-600"></span> YouTube & Shorts
+                  </span>
+                  <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-stone-200 text-stone-700 font-semibold text-[10px]">
+                    <span className="w-2 h-2 rounded-full bg-rose-500"></span> Instagram Reels & Posts
+                  </span>
+                  <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-stone-200 text-stone-700 font-semibold text-[10px]">
+                    <span className="w-2 h-2 rounded-full bg-blue-600"></span> Facebook Vídeos & Reels
+                  </span>
+                  <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-stone-200 text-stone-700 font-semibold text-[10px]">
+                    <span className="w-2 h-2 rounded-full bg-black"></span> X (Twitter)
+                  </span>
+                </div>
 
                 {form.youtube_video_url && (
-                  <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm max-w-md">
-                    <span className="text-[10px] font-bold text-stone-500 block mb-1.5">Preview do Vídeo:</span>
-                    <YouTubeEmbed url={form.youtube_video_url} />
+                  <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm">
+                    <span className="text-[10px] font-bold text-stone-500 block mb-1.5">Preview em Tempo Real do Vídeo:</span>
+                    <SocialVideoEmbed url={form.youtube_video_url} isPreview={true} />
                   </div>
                 )}
               </div>
